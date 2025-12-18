@@ -29,7 +29,7 @@ a{color:inherit;text-decoration:none}
 .bigNumber{font-size:clamp(64px,9vw,130px);font-weight:950;line-height:1;margin:0}
 .genderLabel{margin-top:10px;font-weight:900;color:rgba(11,34,48,.85)}
 .lastCall{margin-top:8px;font-weight:800;color:rgba(11,34,48,.70);font-size:14px}
-.noteBar{margin-top:12px;background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.14);border-radius:14px;padding:10px 12px;overflow:hidden}
+.noteBar{margin-top:12px;background:var(--yellow);border:1px solid rgba(0,0,0,.14);border-radius:14px;padding:10px 12px;overflow:hidden}
 .marquee{white-space:nowrap;overflow:hidden;position:relative;height:26px}
 .marquee span{position:absolute;left:0;transform:translateX(-100%);display:inline-block;padding-left:100%;animation:marquee 14s linear infinite;font-weight:900;color:#b71c1c}
 @keyframes marquee{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
@@ -64,7 +64,7 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 
 
 /* شاشة العرض: المستطيل العلوي أصفر */
-.display-page .top{background:rgba(255,235,59,.70) !important; border:2px solid var(--red) !important;}
+.display-page .top{background:var(--yellow) !important; border:2px solid var(--red) !important;}
 
 .chatList{max-height:280px;overflow:auto;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:10px}
 .chat{padding:10px;border-radius:14px;margin-bottom:8px;border:1px solid rgba(0,0,0,.10);background:rgba(255,255,255,.70)}
@@ -73,7 +73,7 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 .chatMeta{font-weight:900;color:rgba(11,34,48,.75);font-size:12px;margin-bottom:4px}
 .chatText{font-weight:850}
 
-.display-page .noteBar{background:rgba(255,235,59,.70) !important; border:2px solid var(--red) !important;}
+.display-page .noteBar{background:var(--yellow) !important; border:2px solid var(--red) !important;}
 
 .display-page .top{position:relative;}
 .display-page .topLogo{position:absolute;top:10px;right:14px;width:64px;height:64px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.7);padding:6px;border:1px solid rgba(0,0,0,.12)}
