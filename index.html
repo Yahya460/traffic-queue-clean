@@ -23,17 +23,17 @@
         <div class="bd">
           <label>الفرع</label>
           <select id="branchSelect">
-            <option value="صحار">1- صحار</option>
-<option value="مسقط">2- مسقط</option>
-<option value="نزوى">3- نزوى</option>
-<option value="عبري">4- عبري</option>
-<option value="إبراء">5- إبراء</option>
-<option value="صور">6- صور</option>
-<option value="هيماء">7- هيماء</option>
-<option value="صلالة">8- صلالة</option>
-<option value="البريمي">9- البريمي</option>
-<option value="مسندم">10- مسندم</option>
-<option value="الرستاق">11- الرستاق</option>
+            <option value="SOHAR">1- Sohar</option>
+<option value="MUSCAT">2- Muscat</option>
+<option value="NIZWA">3- Nizwa</option>
+<option value="IBRI">4- Ibri</option>
+<option value="IBRA">5- Ibra</option>
+<option value="SUR">6- Sur</option>
+<option value="HAIMA">7- Haima</option>
+<option value="SALALAH">8- Salalah</option>
+<option value="BURAIMI">9- Buraimi</option>
+<option value="MUSANDAM">10- Musandam</option>
+<option value="RUSTAQ">11- Rustaq</option>
           </select>
           <input id="branch" type="hidden" />
           <small class="help">اكتب اسم فرع ثابت واستخدمه في المدير/الموظف/العرض.</small>
@@ -69,14 +69,29 @@
   </div>
 
   <script>
+  const BRANCH_NAME = {
+  "SOHAR":"Sohar",
+  "MUSCAT":"Muscat",
+  "NIZWA":"Nizwa",
+  "IBRI":"Ibri",
+  "IBRA":"Ibra",
+  "SUR":"Sur",
+  "HAIMA":"Haima",
+  "SALALAH":"Salalah",
+  "BURAIMI":"Buraimi",
+  "MUSANDAM":"Musandam",
+  "RUSTAQ":"Rustaq"
+};
+  const branchLabel = (code)=> BRANCH_NAME[code] || code;
+
   const sel = document.getElementById("branchSelect");
   const url = new URL(location.href);
-  const saved = url.searchParams.get("branch") || url.searchParams.get("room") || localStorage.getItem("tq_branch") || "صحار";
+  const saved = (url.searchParams.get("branch") || url.searchParams.get("room") || localStorage.getItem("tq_branch") || "SOHAR").toUpperCase();
   if(sel) sel.value = saved;
-  document.getElementById("branchPill").textContent = saved;
+  document.getElementById("branchPill").textContent = branchLabel(saved);
 
   function go(page){
-    const b = ((sel && sel.value) ? sel.value : "صحار").trim();
+    const b = ((sel && sel.value) ? sel.value : "SOHAR").trim().toUpperCase();
     localStorage.setItem("tq_branch", b);
     const u = new URL(page, location.href);
     u.searchParams.set("branch", b);
@@ -87,9 +102,9 @@
   document.getElementById("goStaff").onclick = ()=>go("./staff.html");
   document.getElementById("goDisplay").onclick = ()=>go("./display.html");
   document.getElementById("saveBranch").onclick = ()=>{
-    const b = ((sel && sel.value) ? sel.value : "صحار").trim();
+    const b = ((sel && sel.value) ? sel.value : "SOHAR").trim().toUpperCase();
     localStorage.setItem("tq_branch", b);
-    document.getElementById("branchPill").textContent = b;
+    document.getElementById("branchPill").textContent = branchLabel(b);
     alert("تم حفظ الفرع ✅");
   };
 </script>
