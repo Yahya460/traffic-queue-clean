@@ -10,7 +10,7 @@
   <div class="container">
     <div class="top">
       <h1>لوحة المدير</h1>
-      <p>إعدادات + رقم المدير + رقم الموظف + صورة العمود الأوسط</p>
+      <p>إعدادات + رقم المدير + إدارة الموظفين + شعار وصورة + الملاحظة</p>
     </div>
 
     <div class="subbar">
@@ -39,11 +39,6 @@
             <button class="primary" id="saveAdminPin">حفظ رقم المدير</button>
             <button class="danger" id="resetAdminPin">إعادة تعيين رقم المدير</button>
           </div>
-          <hr style="border:0;border-top:1px solid rgba(0,0,0,.12);margin:12px 0">
-          <label>تعيين رقم الموظف (Staff PIN)</label>
-          <input id="staffPin" type="password" placeholder="مثال: 4321"/>
-          <div class="btns"><button class="primary" id="setStaffPin">حفظ رقم الموظف</button></div>
-          <small class="help">إذا أول مرة: اضغط (حفظ رقم المدير) ثم أكمل.</small>
         </div>
       </div>
 
@@ -62,6 +57,44 @@
     </div>
 
     <div class="cardRow" style="margin-top:14px">
+      <div class="card">
+        <div class="hd">الملاحظة (صلاحية المدير فقط)</div>
+        <div class="bd">
+          <label>نص الملاحظة</label>
+          <textarea id="adminNote" placeholder="مثال: يرجى التوجه لغرفة التجهيز"></textarea>
+          <div class="btns">
+            <button class="primary" id="saveAdminNote">حفظ الملاحظة</button>
+            <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
+            <button class="danger" id="resetAll">تصفير النظام بالكامل</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">الشعار (يظهر أعلى شاشة العرض)</div>
+        <div class="bd">
+          <label>رفع شعار (PNG/JPG)</label>
+          <input id="logoFile" type="file" accept="image/*"/>
+          <small class="help">يفضل حجم خفيف.</small>
+          <div class="centerImage" id="logoHolder"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">إدارة الموظفين (إضافة/حذف/تغيير اسم المستخدم)</div>
+        <div class="bd">
+          <label>اسم المستخدم الجديد</label>
+          <input id="newUsername" placeholder="مثال: يوسف"/>
+          <label style="margin-top:10px">رقم الموظف</label>
+          <input id="newUserPin" type="password" placeholder="مثال: 4321"/>
+          <div class="btns"><button class="primary" id="addStaff">إضافة موظف</button></div>
+          <small class="help">يمكنك حذف أو تغيير الاسم من القائمة بالأسفل.</small>
+          <div style="margin-top:12px" id="staffList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cardRow" style="margin-top:14px">
       <div class="card" style="grid-column:1/-1">
         <div class="hd">الصورة في العمود الأوسط (تظهر في شاشة العرض)</div>
         <div class="bd">
@@ -70,12 +103,9 @@
             <div>
               <label>اختر صورة (PNG/JPG)</label>
               <input id="imgFile" type="file" accept="image/*"/>
-              <small class="help">يفضّل صورة خفيفة (أقل من 700KB).</small>
+              <small class="help">يفضّل صورة خفيفة.</small>
               <div class="btns">
                 <button class="danger" id="clearImage">حذف الصورة</button>
-                <button class="warn" id="clearNote">مسح الملاحظة</button>
-                <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
-                <button class="danger" id="resetAll">تصفير النظام بالكامل</button>
               </div>
             </div>
             <div class="centerImage" id="imgHolder"></div>

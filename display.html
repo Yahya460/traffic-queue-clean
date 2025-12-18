@@ -6,7 +6,7 @@
   <title>شاشة العرض - نظام الدور</title>
   <link rel="stylesheet" href="./styles.css"/>
 </head>
-<body>
+<body class="display-page">
   <div class="container">
     <div class="top">
       <h1 id="instName">نظام الدور - معهد السلامة المرورية بصحار</h1>
@@ -15,7 +15,7 @@
 
     <div class="subbar">
       <div class="pill">الحالة: <b id="conn">غير متصل…</b></div>
-      <div class="pill"><a href="./index.html">الصفحة الرئيسية</a></div>
+      <!-- حذف زر الرجوع -->
     </div>
 
     <div class="grid3">
@@ -31,11 +31,16 @@
       <div class="panel">
         <div class="hd">رقم التلميذ الحالي</div>
         <div class="bd">
+          <div class="centerLogo" id="logoWrap" style="display:none">
+            <img id="logoImg" alt="logo" src=""/>
+          </div>
+
           <div class="centerTitle">رقم التلميذ الحالي</div>
 
           <div class="bigNumberCard">
             <p class="bigNumber" id="curNumber">--</p>
             <div class="genderLabel" id="genderLabel"></div>
+            <div class="lastCall" id="lastCall"></div>
           </div>
 
           <div class="noteBar">

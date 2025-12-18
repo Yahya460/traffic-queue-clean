@@ -12,7 +12,7 @@
     try{
       const ctx = beep._ctx || (beep._ctx = new (window.AudioContext || window.webkitAudioContext)());
       const now = ctx.currentTime;
-      const play = (f, t0, dur, gain=0.18, type="sine")=>{
+      const play = (f, t0, dur, gain=0.32, type="sine")=>{
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         o.type = type; o.frequency.value = f;
@@ -22,8 +22,8 @@
         o.connect(g); g.connect(ctx.destination);
         o.start(t0); o.stop(t0+dur+0.02);
       };
-      play(kind==="women"?880:660, now, 0.22, 0.18, "sine");
-      play(kind==="women"?990:740, now+0.26, 0.16, 0.14, "triangle");
+      play(kind==="women"?920:660, now, 0.24, 0.34, "sine");
+      play(kind==="women"?1180:740, now+0.28, 0.18, 0.28, "triangle");
     }catch(e){}
   }
 
@@ -35,34 +35,27 @@
   }
 
   function makeGun(){
-    const peers = [
-      "https://gun-manhattan.herokuapp.com/gun",
-      "https://try.axe.eco/gun",
-      "https://test.era.eco/gun"
-    ];
+    const peers = ["https://gun-manhattan.herokuapp.com/gun","https://try.axe.eco/gun","https://test.era.eco/gun"];
     return Gun({ peers });
   }
 
-  function refFor(gun, r){
-    return gun.get("traffic_queue_clean").get(r);
-  }
+  function refFor(gun, r){ return gun.get("traffic_queue_clean").get(r); }
 
   function defaults(){
     return {
-      settings: { historyLimit: 15, instituteName: "معهد السلامة المرورية - صحار", tickerText: "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح" },
-      current: { number: "--", gender: "", staff: "", ts: 0 },
-      note: { text: "", staff: "", ts: 0 },
-      history: { men: {}, women: {} },
-      centerImage: { dataUrl: "", name: "", ts: 0 },
-      auth: { adminHash: "", staffHash: "" },
-      brand: { logoDataUrl: "" }
+      settings:{ historyLimit:15, instituteName:"معهد السلامة المرورية - صحار", tickerText:"يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح" },
+      current:{ number:"--", gender:"", staff:"", ts:0 },
+      note:{ text:"", staff:"", ts:0 },
+      history:{ men:{}, women:{} },
+      centerImage:{ dataUrl:"", name:"", ts:0 },
+      auth:{ adminHash:"" },
+      staffUsers:{},
+      brand:{ logoDataUrl:"" }
     };
   }
 
   function ensure(ref){
-    ref.once((d)=>{
-      if(!d || !d.settings) ref.put(defaults());
-    });
+    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults()); });
   }
 
   function setConn(el, ok){
@@ -82,9 +75,7 @@
     gun.on("bye", ()=>{ ok = false; });
   }
 
-  function esc(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
   // ========= Admin =========
   async function initAdmin(){
@@ -96,14 +87,21 @@
     $("#roomValue").value = r;
     listenConn(gun, $("#conn"), ref);
 
-    const msg = $("#msg");
-    const say = (t)=>{ if(msg) msg.textContent = t; };
+    const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
 
     ref.get("settings").on((s)=>{
       if(!s) return;
       $("#instituteName").value = s.instituteName || "";
       $("#historyLimit").value = s.historyLimit || 15;
       $("#tickerText").value = s.tickerText || "";
+    });
+
+    ref.get("note").on((n)=>{ if(n) $("#adminNote").value = n.text || ""; });
+
+    ref.get("brand").get("logoDataUrl").on((v)=>{
+      const holder = $("#logoHolder");
+      holder.innerHTML = v ? `<img alt="logo" src="${v}" style="max-width:120px;max-height:120px;object-fit:contain">`
+                          : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد شعار</div>`;
     });
 
     ref.get("centerImage").on((img)=>{
@@ -134,11 +132,51 @@
       return {ok: h===stored, reason: h===stored ? "OK":"BAD"};
     };
 
+    function renderStaffList(obj){
+      const list = $("#staffList");
+      const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort() : [];
+      list.innerHTML = keys.length ? keys.map(u=>`
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
+          <div style="font-weight:900">${esc(u)}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="warn" data-rename="${esc(u)}">تغيير الاسم</button>
+            <button class="danger" data-del="${esc(u)}">حذف</button>
+          </div>
+        </div>`).join("") : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد موظفون</div>`;
+
+      list.querySelectorAll("[data-del]").forEach(btn=>{
+        btn.onclick = async ()=>{
+          const adminPin = ($("#adminPin").value||"").trim();
+          if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
+          const u = btn.getAttribute("data-del");
+          if(!confirm(`حذف الموظف: ${u} ؟`)) return;
+          ref.get("staffUsers").get(u).put(null);
+          say("تم حذف الموظف ✅");
+        };
+      });
+      list.querySelectorAll("[data-rename]").forEach(btn=>{
+        btn.onclick = async ()=>{
+          const adminPin = ($("#adminPin").value||"").trim();
+          if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
+          const oldU = btn.getAttribute("data-rename");
+          const newU = prompt("اكتب اسم المستخدم الجديد:", oldU);
+          if(!newU) return;
+          const nu = newU.trim();
+          if(!nu || nu===oldU) return;
+          ref.get("staffUsers").get(oldU).once((data)=>{
+            if(!data) return;
+            ref.get("staffUsers").get(nu).put({ pinHash: data.pinHash || "", ts: Date.now() });
+            ref.get("staffUsers").get(oldU).put(null);
+            say("تم تغيير اسم المستخدم ✅");
+          });
+        };
+      });
+    }
+    ref.get("staffUsers").on(renderStaffList);
+
     $("#setRoom").onclick = ()=>{
       const nr = ($("#roomValue").value || "sohar-demo").trim();
-      const u = new URL(location.href);
-      u.searchParams.set("room", nr);
-      location.href = u.toString();
+      const u = new URL(location.href); u.searchParams.set("room", nr); location.href = u.toString();
     };
 
     $("#saveAdminPin").onclick = async ()=>{
@@ -159,32 +197,73 @@
 
     $("#saveSettings").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير ثم اضغط حفظ رقم المدير"); return; }
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       const first = await setAdminIfEmpty(pin);
       if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ اضغط حفظ الإعدادات مرة أخرى"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-
-      const instituteName = ($("#instituteName").value || "").trim() || "معهد السلامة المرورية - صحار";
-      const historyLimit = Math.max(3, Math.min(60, parseInt($("#historyLimit").value || "15",10)));
-      const tickerText = ($("#tickerText").value || "").trim() || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح";
-      ref.get("settings").put({ instituteName, historyLimit, tickerText });
+      ref.get("settings").put({
+        instituteName: ($("#instituteName").value || "").trim() || "معهد السلامة المرورية - صحار",
+        historyLimit: Math.max(3, Math.min(60, parseInt($("#historyLimit").value || "15",10))),
+        tickerText: ($("#tickerText").value || "").trim() || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح"
+      });
       say("تم حفظ الإعدادات ✅");
     };
 
-    $("#setStaffPin").onclick = async ()=>{
+    $("#saveAdminNote").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
-      const chk = await requireAdmin(pin);
-      if(!chk.ok && chk.reason==="EMPTY"){
-        const first = await setAdminIfEmpty(pin);
-        if(first.ok){ say("تم تعيين رقم المدير ✅ أعد المحاولة لحفظ رقم الموظف"); return; }
-      }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      ref.get("note").put({ text: ($("#adminNote").value || "").trim(), staff:"المدير", ts: Date.now() });
+      say("تم حفظ الملاحظة ✅");
+    };
 
-      const sp = ($("#staffPin").value || "").trim();
-      if(sp.length < 4){ say("اختر رقم للموظف لا يقل عن 4 أرقام"); return; }
-      ref.get("auth").get("staffHash").put(await sha256(sp));
-      say("تم حفظ رقم الموظف ✅");
+    $("#addStaff").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      const first = await setAdminIfEmpty(pin);
+      if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ أعد المحاولة لإضافة موظف"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      const u = ($("#newUsername").value || "").trim();
+      const sp = ($("#newUserPin").value || "").trim();
+      if(!u){ say("اكتب اسم مستخدم للموظف"); return; }
+      if(sp.length < 4){ say("رقم الموظف لا يقل عن 4 أرقام"); return; }
+      ref.get("staffUsers").get(u).put({ pinHash: await sha256(sp), ts: Date.now() });
+      $("#newUsername").value=""; $("#newUserPin").value="";
+      say("تمت إضافة الموظف ✅");
+    };
+
+    $("#logoFile").addEventListener("change", async (e)=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); e.target.value=""; return; }
+      const first = await setAdminIfEmpty(pin);
+      if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ أعد رفع الشعار"); e.target.value=""; return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); e.target.value=""; return; }
+      const file = e.target.files && e.target.files[0]; if(!file) return;
+      const dataUrl = await new Promise((res, rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); });
+      ref.get("brand").get("logoDataUrl").put(dataUrl);
+      say("تم رفع الشعار ✅");
+      e.target.value="";
+    });
+
+    $("#imgFile").addEventListener("change", async (e)=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); e.target.value=""; return; }
+      const first = await setAdminIfEmpty(pin);
+      if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ أعد رفع الصورة"); e.target.value=""; return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); e.target.value=""; return; }
+      const file = e.target.files && e.target.files[0]; if(!file) return;
+      const dataUrl = await new Promise((res, rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); });
+      ref.get("centerImage").put({ dataUrl, name:file.name, ts: Date.now() });
+      say("تم رفع الصورة ✅");
+      e.target.value="";
+    });
+
+    $("#clearImage").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      ref.get("centerImage").put({ dataUrl:"", name:"", ts: Date.now() });
+      say("تم حذف الصورة ✅");
     };
 
     $("#clearHistory").onclick = async ()=>{
@@ -195,22 +274,6 @@
       say("تم مسح سجل الأرقام ✅");
     };
 
-    $("#clearNote").onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-      ref.get("note").put({ text:"", staff:"", ts: Date.now() });
-      say("تم مسح الملاحظة ✅");
-    };
-
-    $("#clearImage").onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-      ref.get("centerImage").put({ dataUrl:"", name:"", ts: Date.now() });
-      say("تم حذف الصورة ✅");
-    };
-
     $("#resetAll").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
@@ -219,26 +282,6 @@
       ref.put(defaults());
       say("تم تصفير النظام ✅");
     };
-
-    $("#imgFile").addEventListener("change", async (e)=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); e.target.value=""; return; }
-      const first = await setAdminIfEmpty(pin);
-      if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ أعد رفع الصورة"); e.target.value=""; return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); e.target.value=""; return; }
-
-      const file = e.target.files && e.target.files[0];
-      if(!file) return;
-      const dataUrl = await new Promise((res, rej)=>{
-        const fr = new FileReader();
-        fr.onload = ()=>res(fr.result);
-        fr.onerror = rej;
-        fr.readAsDataURL(file);
-      });
-      ref.get("centerImage").put({ dataUrl, name:file.name, ts: Date.now() });
-      say("تم رفع الصورة ✅");
-      e.target.value = "";
-    });
   }
 
   // ========= Staff =========
@@ -251,18 +294,19 @@
     $("#roomValue").value = r;
     listenConn(gun, $("#conn"), ref);
 
-    const msg = $("#msg");
-    const say = (t)=>{ if(msg) msg.textContent = t; };
+    const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
 
-    ref.get("settings").on((s)=>{
-      if(s?.instituteName) $("#instName").textContent = s.instituteName;
+    ref.get("settings").on((s)=>{ if(s?.instituteName) $("#instName").textContent = s.instituteName; });
+
+    const userSel = $("#username");
+    ref.get("staffUsers").on((obj)=>{
+      const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort() : [];
+      const cur = userSel.value;
+      userSel.innerHTML = `<option value="">اختر المستخدم…</option>` + keys.map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join("");
+      if(keys.includes(cur)) userSel.value = cur;
     });
 
-    // local preview
-    ref.get("current").on((c)=>{
-      if(!c) return;
-      $("#currentNum").textContent = c.number ?? "--";
-    });
+    ref.get("current").on((c)=>{ if(c) $("#currentNum").textContent = c.number ?? "--"; });
 
     let lastCallTs = 0;
     ref.get("current").on((c)=>{
@@ -274,66 +318,56 @@
     });
 
     async function requireStaff(){
-      const pin = ($("#staffPin").value || "").trim();
-      if(!pin){ say("أدخل رقم الموظف"); return false; }
-      const stored = await new Promise(res=> ref.get("auth").get("staffHash").once(res));
-      if(!stored){ say("لم يتم تعيين رقم موظف بعد (من المدير)"); return false; }
-      const h = await sha256(pin);
-      if(h !== stored){ say("رقم الموظف غير صحيح"); return false; }
-      return true;
+      const u = (userSel.value || "").trim();
+      if(!u){ say("اختر اسم المستخدم"); return null; }
+      const pin = ($("#userPin").value || "").trim();
+      if(!pin){ say("أدخل رقم الموظف"); return null; }
+      const data = await new Promise(res=> ref.get("staffUsers").get(u).once(res));
+      if(!data || !data.pinHash){ say("هذا المستخدم غير موجود"); return null; }
+      if(await sha256(pin) !== data.pinHash){ say("رقم الموظف غير صحيح"); return null; }
+      return u;
     }
 
     $("#setRoom").onclick = ()=>{
       const nr = ($("#roomValue").value || "sohar-demo").trim();
-      const u = new URL(location.href);
-      u.searchParams.set("room", nr);
-      location.href = u.toString();
+      const u = new URL(location.href); u.searchParams.set("room", nr); location.href = u.toString();
     };
 
     $("#callNext").onclick = async ()=>{
-      if(!(await requireStaff())) return;
+      const username = await requireStaff();
+      if(!username) return;
+
       const num = ($("#ticketNum").value || "").trim();
       const gender = $("#gender").value;
-      const staffName = ($("#staffName").value || "").trim() || "موظف";
       if(!num){ say("أدخل رقم المتدرب"); return; }
       if(!gender){ say("اختر (رجال/نساء)"); return; }
 
       const settings = await new Promise(res=> ref.get("settings").once(res));
       const limit = Math.max(3, Math.min(60, parseInt(settings?.historyLimit || 15,10)));
 
+      const prev = await new Promise(res=> ref.get("current").once(res));
       const now = Date.now();
-      ref.get("current").put({ number:num, gender, staff:staffName, ts: now });
 
-      const bucket = (gender==="women") ? "women" : "men";
-      ref.get("history").get(bucket).get(String(now)).put({ number:num, staff:staffName, ts: now });
+      // نقل السابق إلى سجل جنسه
+      if(prev && prev.number && prev.number !== "--" && prev.gender){
+        const bucketPrev = (prev.gender==="women") ? "women" : "men";
+        ref.get("history").get(bucketPrev).get(String(now-1)).put({ number: prev.number, staff: prev.staff || "", ts: now-1 });
 
-      ref.get("history").get(bucket).once((obj)=>{
-        if(!obj) return;
-        const keys = Object.keys(obj).filter(k=>k!=="_").sort();
-        const extra = keys.length - limit;
-        if(extra > 0){
-          for(let i=0;i<extra;i++){
-            ref.get("history").get(bucket).get(keys[i]).put(null);
+        // trim
+        ref.get("history").get(bucketPrev).once((obj)=>{
+          if(!obj) return;
+          const keys = Object.keys(obj).filter(k=>k!=="_").sort();
+          const extra = keys.length - limit;
+          if(extra > 0){
+            for(let i=0;i<extra;i++){
+              ref.get("history").get(bucketPrev).get(keys[i]).put(null);
+            }
           }
-        }
-      });
+        });
+      }
 
+      ref.get("current").put({ number:num, gender, staff: username, ts: now });
       say("تم النداء ✅");
-    };
-
-    $("#sendNote").onclick = async ()=>{
-      if(!(await requireStaff())) return;
-      const staffName = ($("#staffName").value || "").trim() || "موظف";
-      const text = ($("#noteText").value || "").trim();
-      ref.get("note").put({ text, staff:staffName, ts: Date.now() });
-      say("تم إرسال الملاحظة ✅");
-    };
-
-    $("#clearNote").onclick = async ()=>{
-      if(!(await requireStaff())) return;
-      ref.get("note").put({ text:"", staff:(($("#staffName").value||"").trim()||"موظف"), ts: Date.now() });
-      $("#noteText").value = "";
-      say("تم مسح الملاحظة ✅");
     };
   }
 
@@ -352,11 +386,19 @@
       $("#tickerText").textContent = s?.tickerText || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح";
     });
 
+    ref.get("brand").get("logoDataUrl").on((v)=>{
+      const wrap = $("#logoWrap");
+      const img = $("#logoImg");
+      if(v){ img.src = v; wrap.style.display="flex"; }
+      else { img.src=""; wrap.style.display="none"; }
+    });
+
     let lastTs = 0;
     ref.get("current").on((c)=>{
       if(!c) return;
       $("#curNumber").textContent = c.number ?? "--";
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
+      $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
       if(c.ts && c.ts !== lastTs){
         lastTs = c.ts;
         if(c.gender) beep(c.gender);
@@ -373,13 +415,8 @@
     ref.get("centerImage").on((img)=>{
       const holder = $("#centerImg");
       const wrap = $("#centerImgWrap");
-      if(img?.dataUrl){
-        holder.src = img.dataUrl;
-        wrap.style.display = "block";
-      }else{
-        holder.src = "";
-        wrap.style.display = "none";
-      }
+      if(img?.dataUrl){ holder.src = img.dataUrl; wrap.style.display="block"; }
+      else { holder.src=""; wrap.style.display="none"; }
     });
 
     function renderList(obj, target){

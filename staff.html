@@ -20,17 +20,22 @@
 
     <div class="cardRow">
       <div class="card">
-        <div class="hd">بيانات الموظف</div>
+        <div class="hd">دخول الموظف</div>
         <div class="bd">
           <label>Room</label>
           <input id="roomValue" placeholder="sohar-demo"/>
           <div class="btns"><button class="gray" id="setRoom">تغيير الغرفة</button></div>
           <small class="help">استخدم نفس Room في شاشة العرض والمدير.</small>
+
           <hr style="border:0;border-top:1px solid rgba(0,0,0,.12);margin:12px 0">
-          <label>اسم الموظف</label>
-          <input id="staffName" placeholder="مثال: يوسف"/>
-          <label style="margin-top:10px">رقم الموظف (Staff PIN)</label>
-          <input id="staffPin" type="password" placeholder="أدخله هنا"/>
+
+          <label>اسم المستخدم</label>
+          <select id="username">
+            <option value="">اختر المستخدم…</option>
+          </select>
+
+          <label style="margin-top:10px">رقم الموظف</label>
+          <input id="userPin" type="password" placeholder="أدخل الرقم"/>
         </div>
       </div>
 
@@ -47,13 +52,8 @@
             <option value="women">نساء</option>
           </select>
           <div class="btns"><button class="primary" id="callNext">نداء</button></div>
-          <hr style="border:0;border-top:1px solid rgba(0,0,0,.12);margin:12px 0">
-          <label>ملاحظة (اختياري)</label>
-          <textarea id="noteText" placeholder="مثال: يرجى التوجه لغرفة التجهيز"></textarea>
-          <div class="btns">
-            <button class="primary" id="sendNote">إرسال الملاحظة</button>
-            <button class="warn" id="clearNote">مسح الملاحظة</button>
-          </div>
+
+          <small class="help" style="margin-top:10px">الملاحظة أصبحت من صلاحيات المدير فقط ✅</small>
         </div>
       </div>
 
