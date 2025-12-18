@@ -470,8 +470,17 @@ function makeBucketRenderer(bucket, target){
       store[key] = val;
     }
     const keys = Object.keys(store).sort((a,b)=>Number(b)-Number(a));
-    const nums = keys.map(k => store[k]?.number).filter(Boolean);
-    target.innerHTML = nums.map(n=>`<div class="tile">${esc(n)}</div>`).join("") ||
+
+    const items = keys.map(k => store[k]).filter(Boolean).map(it=>{
+      const num = it.number;
+      const ts  = it.ts || 0;
+      return { num, ts };
+    }).filter(x=>x.num);
+
+    target.innerHTML = items.map(x=>{
+      const t = x.ts ? formatTime(x.ts) : "";
+      return `<div class="tile"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
+    }).join("") ||
       `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
   });
 }

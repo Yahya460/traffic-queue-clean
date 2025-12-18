@@ -77,17 +77,6 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 
 .display-page .top{position:relative;}
 .display-page .topLogo{position:absolute;top:10px;right:14px;width:64px;height:64px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.7);padding:6px;border:1px solid rgba(0,0,0,.12)}
-/* توحيد اللون الأصفر في شاشة العرض */
-.display-page .top,
-.display-page .noteBar,
-.display-page .footerNote {
-  background-color: #FFF176 !important; /* أصفر فاتح موحد */
-  border: 2px solid #D32F2F !important;
-}
 
-/* تأكيد عدم وجود شفافية */
-.display-page .top *,
-.display-page .noteBar *,
-.display-page .footerNote * {
-  background-color: transparent !important;
-}
+.tileNum{display:block;line-height:1;font-size:18px;font-weight:950}
+.tileTime{display:block;margin-top:4px;line-height:1;font-size:11px;font-weight:800;opacity:.75}
