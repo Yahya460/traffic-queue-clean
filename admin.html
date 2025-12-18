@@ -8,154 +8,83 @@
 </head>
 <body>
   <div class="container">
-    <div class="topbar">
-      <div class="brand">
-        <div class="badge" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2 20 6v6c0 5-3.4 9.4-8 10-4.6-.6-8-5-8-10V6l8-4Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="title">
-          <h1>لوحة المدير</h1>
-          <p>إعدادات • أرقام سرية • رفع صورة للعمود الأوسط</p>
-        </div>
-      </div>
-      <div class="kv">
-        <div class="pill">الحالة: <b id="conn">غير متصل…</b></div>
-        <a class="pill" href="./index.html">الصفحة الرئيسية</a>
-      </div>
+    <div class="top">
+      <h1>لوحة المدير</h1>
+      <p>إعدادات + رقم المدير + رقم الموظف + صورة العمود الأوسط</p>
     </div>
 
-    <div class="grid cols-3">
+    <div class="subbar">
+      <div class="pill">الحالة: <b id="conn">غير متصل…</b></div>
+      <div class="pill"><a href="./index.html">الصفحة الرئيسية</a></div>
+    </div>
+
+    <div class="cardRow">
       <div class="card">
-        <div class="hd">
-          <div class="left">
-            <div class="icon" id="ic-link"></div>
-            <div>
-              <div style="font-weight:800">الغرفة (Room)</div>
-              <div style="color:rgba(255,255,255,.65);font-size:12.5px">حددها لتتزامن كل الأجهزة</div>
-            </div>
-          </div>
-        </div>
+        <div class="hd">الغرفة (Room)</div>
         <div class="bd">
           <label>Room</label>
-          <input id="roomValue" placeholder="sohar-queue-2025"/>
-          <div class="btns" style="margin-top:10px">
-            <button class="primary" id="setRoom">تغيير الغرفة</button>
-          </div>
+          <input id="roomValue" placeholder="sohar-demo"/>
+          <div class="btns"><button class="gray" id="setRoom">تغيير الغرفة</button></div>
           <small class="help">انسخ نفس Room إلى الموظف وشاشة العرض.</small>
         </div>
       </div>
 
       <div class="card">
-        <div class="hd">
-          <div class="left">
-            <div class="icon" id="ic-shield"></div>
-            <div>
-              <div style="font-weight:800">الحماية (PIN)</div>
-              <div style="color:rgba(255,255,255,.65);font-size:12.5px">أرقام سرية بسيطة للاستخدام الداخلي</div>
-            </div>
-          </div>
-        </div>
+        <div class="hd">الحماية (PIN)</div>
         <div class="bd">
-          <div class="row">
-            <div>
-              <label>رقم المدير (Admin PIN)</label>
-              <input id="adminPin" type="password" placeholder="أدخل الرقم هنا"/>
-              <small class="help">أول مرة ستقوم بتعيينه تلقائيًا عند أول عملية حفظ.</small>
-            </div>
+          <div class="pill" id="msg">جاهز</div>
+          <label style="margin-top:10px">رقم المدير (Admin PIN)</label>
+          <input id="adminPin" type="password" placeholder="اكتب رقم تختاره (مثال 1234)"/>
+          <div class="btns">
+            <button class="primary" id="saveAdminPin">حفظ رقم المدير</button>
+            <button class="danger" id="resetAdminPin">إعادة تعيين رقم المدير</button>
           </div>
-          <hr class="sep"/>
-          <div class="row">
-            <div>
-              <label>تعيين رقم للموظف (Staff PIN)</label>
-              <input id="staffPin" type="password" placeholder="مثال: 1234"/>
-            </div>
-          </div>
-          <div class="btns" style="margin-top:10px">
-            <button class="primary" id="setStaffPin">حفظ رقم الموظف</button>
-          </div>
+          <hr style="border:0;border-top:1px solid rgba(0,0,0,.12);margin:12px 0">
+          <label>تعيين رقم الموظف (Staff PIN)</label>
+          <input id="staffPin" type="password" placeholder="مثال: 4321"/>
+          <div class="btns"><button class="primary" id="setStaffPin">حفظ رقم الموظف</button></div>
+          <small class="help">إذا أول مرة: اضغط (حفظ رقم المدير) ثم أكمل.</small>
         </div>
       </div>
 
       <div class="card">
-        <div class="hd">
-          <div class="left">
-            <div class="icon" id="ic-wrench"></div>
-            <div>
-              <div style="font-weight:800">إعدادات النظام</div>
-              <div style="color:rgba(255,255,255,.65);font-size:12.5px">أسماء + عدد السجل</div>
-            </div>
-          </div>
-        </div>
+        <div class="hd">إعدادات النظام</div>
         <div class="bd">
           <label>اسم الجهة</label>
           <input id="instituteName" placeholder="معهد السلامة المرورية - صحار"/>
-          <div class="row" style="margin-top:10px">
-            <div>
-              <label>عدد الأرقام المحفوظة في السجل</label>
-              <input id="historyLimit" type="number" min="3" max="60" value="15"/>
-            </div>
-          </div>
-          <div class="btns" style="margin-top:10px">
-            <button class="primary" id="saveSettings">حفظ الإعدادات</button>
-          </div>
+          <label style="margin-top:10px">عدد الأرقام المحفوظة في السجل</label>
+          <input id="historyLimit" type="number" min="3" max="60" value="15"/>
+          <label style="margin-top:10px">النص السفلي</label>
+          <input id="tickerText" placeholder="يرجى الالتزام بالهدوء وانتظار دوركم..."/>
+          <div class="btns"><button class="primary" id="saveSettings">حفظ الإعدادات</button></div>
         </div>
       </div>
     </div>
 
-    <div class="grid" style="margin-top:14px">
-      <div class="card">
-        <div class="hd">
-          <div class="left">
-            <div class="icon" id="ic-image"></div>
-            <div>
-              <div style="font-weight:800">الصورة في العمود الأوسط</div>
-              <div style="color:rgba(255,255,255,.65);font-size:12.5px">رفع صورة تظهر مباشرة في شاشة العرض</div>
-            </div>
-          </div>
-          <div class="pill" id="imgName"></div>
-        </div>
+    <div class="cardRow" style="margin-top:14px">
+      <div class="card" style="grid-column:1/-1">
+        <div class="hd">الصورة في العمود الأوسط (تظهر في شاشة العرض)</div>
         <div class="bd">
-          <div class="split">
+          <div class="pill" id="imgName"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
             <div>
               <label>اختر صورة (PNG/JPG)</label>
               <input id="imgFile" type="file" accept="image/*"/>
-              <small class="help">يُفضّل صورة خفيفة (أقل من 700KB) حتى لا تتأخر على الهواتف.</small>
-              <div class="btns" style="margin-top:10px">
-                <button class="bad" id="clearImage">حذف الصورة</button>
+              <small class="help">يفضّل صورة خفيفة (أقل من 700KB).</small>
+              <div class="btns">
+                <button class="danger" id="clearImage">حذف الصورة</button>
+                <button class="warn" id="clearNote">مسح الملاحظة</button>
+                <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
+                <button class="danger" id="resetAll">تصفير النظام بالكامل</button>
               </div>
             </div>
             <div class="centerImage" id="imgHolder"></div>
           </div>
         </div>
       </div>
-
-      <div class="card">
-        <div class="hd">
-          <div class="left">
-            <div class="icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>
-            </div>
-            <div>
-              <div style="font-weight:800">صيانة سريعة</div>
-              <div style="color:rgba(255,255,255,.65);font-size:12.5px">تصفير أو مسح أجزاء</div>
-            </div>
-          </div>
-          <div class="pill" id="msg" style="opacity:.85">جاهز</div>
-        </div>
-        <div class="bd">
-          <div class="btns">
-            <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
-            <button class="warn" id="clearNote">مسح الملاحظة</button>
-            <button class="bad" id="resetAll">تصفير النظام بالكامل</button>
-          </div>
-          <small class="help">ملاحظة: الأرقام السرية هنا للاستخدام الداخلي فقط وليست حماية قوية.</small>
-        </div>
-      </div>
     </div>
 
-    <div class="footerNote">جميع الحقوق محفوظة — الرقيب أول يحيى آل عبدالسلام</div>
+    <div class="rights">جميع الحقوق محفوظة — الرقيب أول يحيى آل عبدالسلام</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
