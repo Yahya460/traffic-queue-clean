@@ -108,20 +108,6 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   });
 }
 
-function playPing(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "sine";
-    o.frequency.value = 740;
-    g.gain.value = 0.03;
-    o.connect(g); g.connect(ctx.destination);
-    o.start();
-    setTimeout(()=>{ o.stop(); ctx.close(); }, 120);
-  }catch(e){}
-}
-
 function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
   // ========= Admin =========
@@ -497,8 +483,8 @@ function formatTime(ts){
 }
 
 function renderChat(listEl, msgs){
-  if(!listEl) return;
-  const items = msgs.slice(-60); // آخر 60 رسالة
+  if(!listEl) return 0;
+  const items = msgs.slice(-60);
   listEl.innerHTML = items.map(m=>{
     const who = m.from || "";
     const role = m.role || "";
@@ -512,6 +498,7 @@ function renderChat(listEl, msgs){
       </div>`;
   }).join("") || `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">لا توجد رسائل</div>`;
   listEl.scrollTop = listEl.scrollHeight;
+  return items.length ? (items[items.length-1].ts || 0) : 0;
 }
 
 function wireChat(ref, listEl){
@@ -532,7 +519,6 @@ if(badge && uSel){
   const unread = latestTs > seen;
   badge.style.display = unread ? "inline-flex" : "none";
   badge.textContent = unread ? "جديد" : "";
-  if(unread && msg.role==="staff"){ playPing(); }
 }
   });
 }
@@ -654,14 +640,11 @@ async function initChatStaff(ref, requireStaffFn){
       const seen = Number(localStorage.getItem(seenKey) || 0);
       const unread = latestTs > seen;
       if(badge){ badge.style.display = unread ? "inline-flex" : "none"; badge.textContent = unread ? "جديد" : ""; }
-      if(unread && msg.role==="admin"){ playPing(); }
     });
   }
 
-  // عند الضغط على قائمة الدردشة يعتبر "تمت القراءة"
   listEl.addEventListener("click", ()=> markSeen(currentUser));
 
-  // زر حذف الدردشة
   $("#clearChatStaff")?.addEventListener("click", async ()=>{
     const u = await requireStaffFn();
     if(!u) return;
@@ -671,30 +654,18 @@ async function initChatStaff(ref, requireStaffFn){
     setTimeout(()=> location.reload(), 250);
   });
 
-  // محاولة اعتماد المستخدم وتفعيل الاستقبال (بدون إرسال)
   async function ensureAuthedAndAttach(){
     const u = await requireStaffFn();
     if(!u) return null;
-    // خزّن آخر مستخدم لتسهيل فتح الدردشة
-    localStorage.setItem(`tq_last_staff_${branch()}`, u);
     attach(u);
     return u;
   }
 
-  // عند تغيير الاسم / إدخال الرقم نحاول التفعيل
   document.querySelector("#username")?.addEventListener("change", ()=>{ ensureAuthedAndAttach(); });
   document.querySelector("#userPin")?.addEventListener("input", ()=>{
     if((document.querySelector("#userPin")?.value || "").trim().length >= 4) ensureAuthedAndAttach();
   });
 
-  // احتياط: إذا كان الاسم والرقم موجودين بالفعل
-  setTimeout(()=>{ 
-    const u = (document.querySelector("#username")?.value || "").trim();
-    const p = (document.querySelector("#userPin")?.value || "").trim();
-    if(u && p) ensureAuthedAndAttach();
-  }, 400);
-
-  // إرسال رسالة
   $("#sendChatStaff").onclick = async ()=>{
     const u = await ensureAuthedAndAttach();
     if(!u) return;
