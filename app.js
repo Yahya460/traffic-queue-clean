@@ -162,6 +162,10 @@ $("#branchValue").value = b;
       return {ok: h===stored, reason: h===stored ? "OK":"BAD"};
     };
 
+    // Chat
+    initChatAdmin(ref, requireAdmin);
+
+
     function renderStaffList(obj){
       const list = $("#staffList");
       const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort() : [];
@@ -353,6 +357,10 @@ $("#branchValue").value = b;
       return u;
     }
 
+    // Chat
+    initChatStaff(ref, requireStaff);
+
+
     $("#setBranch").onclick = ()=>{
   const sel = $("#branchSelect") || $("#branchValue");
   const nb = ((sel && sel.value) ? sel.value : "صحار").trim();
@@ -373,27 +381,36 @@ $("#branchValue").value = b;
       if(!gender){ say("اختر (رجال/نساء)"); return; }
 
       const settings = await new Promise(res=> ref.get("settings").once(res));
-      const limit = Math.max(3, Math.min(60, parseInt(settings?.historyLimit || 15,10)));
+  const limit = Math.max(3, Math.min(60, parseInt(settings?.historyLimit || 15,10)));
 
-      const prev = await new Promise(res=> ref.get("current").once(res));
-      const now = Date.now();
+  const prev = await new Promise(res=> ref.get("current").once(res));
+  const now = Date.now();
 
-      if(prev && prev.number && prev.number !== "--" && prev.gender){
-        const bucketPrev = (prev.gender==="women") ? "women" : "men";
-        ref.get("history").get(bucketPrev).get(String(now-1)).put({ number: prev.number, staff: prev.staff || "", ts: now-1 });
-        ref.get("history").get(bucketPrev).once((obj)=>{
-          if(!obj) return;
-          const keys = Object.keys(obj).filter(k=>k!=="_").sort();
-          const extra = keys.length - limit;
-          if(extra > 0){
-            for(let i=0;i<extra;i++) ref.get("history").get(bucketPrev).get(keys[i]).put(null);
+  // 1) نقل الرقم السابق (الذي كان "حالي") إلى العمود المناسب بعد نداء رقم جديد
+  if(prev && prev.number && prev.number !== "--" && (prev.gender === "men" || prev.gender === "women")){
+    const bucketPrev = (prev.gender === "women") ? "women" : "men";
+    const key = String(now); // مفتاح واضح
+    ref.get("history").get(bucketPrev).get(key).put({ number: prev.number, staff: prev.staff || "", ts: now });
+
+    // تقليم السجل بعد لحظات لضمان وصول البيانات
+    setTimeout(()=>{
+      ref.get("history").get(bucketPrev).once((obj)=>{
+        if(!obj) return;
+        const keys = Object.keys(obj).filter(k=>k!=="_").sort((a,b)=>Number(a)-Number(b));
+        const extra = keys.length - limit;
+        if(extra > 0){
+          for(let i=0;i<extra;i++){
+            ref.get("history").get(bucketPrev).get(keys[i]).put(null);
           }
-        });
-      }
+        }
+      });
+    }, 250);
+  }
 
-      ref.get("current").put({ number:num, gender, staff: username, ts: now });
-      say("تم النداء ✅");
-    };
+  // 2) تحديث الرقم الحالي
+  ref.get("current").put({ number:num, gender, staff: username, ts: now });
+  say("تم النداء ✅");
+};
   }
 
   // ========= Display =========
@@ -450,5 +467,85 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
     ref.get("history").get("women").on((h)=> renderList(h, $("#womenList")));
   }
 
-  window.TQ = { initAdmin, initStaff, initDisplay };
+  // ========= Chat (Admin <-> Staff) =========
+function formatTime(ts){
+  try{
+    return new Date(ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){ return ""; }
+}
+
+function renderChat(listEl, msgs){
+  if(!listEl) return;
+  const items = msgs.slice(-60); // آخر 60 رسالة
+  listEl.innerHTML = items.map(m=>{
+    const who = m.from || "";
+    const role = m.role || "";
+    const t = m.ts ? formatTime(m.ts) : "";
+    const text = (m.text || "").trim();
+    const cls = role === "admin" ? "chat admin" : "chat staff";
+    return `
+      <div class="${cls}">
+        <div class="chatMeta">${esc(who)} • ${t}</div>
+        <div class="chatText">${esc(text)}</div>
+      </div>`;
+  }).join("") || `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">لا توجد رسائل</div>`;
+  listEl.scrollTop = listEl.scrollHeight;
+}
+
+function wireChat(ref, listEl){
+  const msgs = [];
+  // Gun set: chat/messages/*
+  ref.get("chat").get("messages").map().on((data, key)=>{
+    if(!data || !data.text) return;
+    const msg = { id:key, from:data.from||"", role:data.role||"", text:data.text||"", ts:data.ts||0 };
+    const idx = msgs.findIndex(x=>x.id===key);
+    if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
+    msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
+    renderChat(listEl, msgs);
+  });
+}
+
+async function initChatAdmin(ref, requireAdminFn){
+  const listEl = $("#chatListAdmin");
+  if(!listEl) return;
+  wireChat(ref, listEl);
+  $("#sendChatAdmin").onclick = async ()=>{
+    const pin = ($("#adminPin").value || "").trim();
+    if(pin.length < 4) return;
+    const ok = await requireAdminFn(pin);
+    if(!ok.ok) return;
+    const txtEl = $("#chatTextAdmin");
+    const text = (txtEl.value || "").trim();
+    if(!text) return;
+    ref.get("chat").get("messages").set({ from:"المدير", role:"admin", text, ts: Date.now() });
+    txtEl.value = "";
+  };
+  $("#clearChatAdmin").onclick = async ()=>{
+    const pin = ($("#adminPin").value || "").trim();
+    if(pin.length < 4) return;
+    const ok = await requireAdminFn(pin);
+    if(!ok.ok) return;
+    if(!confirm("مسح الدردشة لهذا الفرع؟")) return;
+    // لا يوجد delete set بسهولة، نضيف “رسالة نظام” ونفرغ عبر عقدة جديدة
+    ref.get("chat").put({ messages: {} });
+    setTimeout(()=> location.reload(), 300);
+  };
+}
+
+async function initChatStaff(ref, requireStaffFn){
+  const listEl = $("#chatListStaff");
+  if(!listEl) return;
+  wireChat(ref, listEl);
+  $("#sendChatStaff").onclick = async ()=>{
+    const username = await requireStaffFn();
+    if(!username) return;
+    const txtEl = $("#chatTextStaff");
+    const text = (txtEl.value || "").trim();
+    if(!text) return;
+    ref.get("chat").get("messages").set({ from: username, role:"staff", text, ts: Date.now() });
+    txtEl.value = "";
+  };
+}
+
+window.TQ = { initAdmin, initStaff, initDisplay };
 })();

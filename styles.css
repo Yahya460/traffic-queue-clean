@@ -65,3 +65,10 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 
 /* شاشة العرض: المستطيل العلوي أصفر */
 .display-page .top{background:rgba(255,235,59,.60) !important; border:2px solid var(--red) !important;}
+
+.chatList{max-height:280px;overflow:auto;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:10px}
+.chat{padding:10px;border-radius:14px;margin-bottom:8px;border:1px solid rgba(0,0,0,.10);background:rgba(255,255,255,.70)}
+.chat.admin{background:rgba(11,115,201,.12)}
+.chat.staff{background:rgba(211,47,47,.10)}
+.chatMeta{font-weight:900;color:rgba(11,34,48,.75);font-size:12px;margin-bottom:4px}
+.chatText{font-weight:850}
