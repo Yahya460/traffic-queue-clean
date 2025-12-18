@@ -61,4 +61,7 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 .display-page .noteBar,
 .display-page .centerImage,
 .display-page .footerTicker{border:2px solid var(--red)!important}
-.pill select{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.18);background:rgba(255,255,255,.85);font-weight:900}
+
+
+/* شاشة العرض: المستطيل العلوي أصفر */
+.display-page .top{background:rgba(255,235,59,.60) !important; border:2px solid var(--red) !important;}

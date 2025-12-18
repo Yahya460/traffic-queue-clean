@@ -31,13 +31,26 @@
   function branch(){
   const url = new URL(location.href);
   const b =
-    url.searchParams.get("branch") ||
-    url.searchParams.get("room") || // توافق مع النسخ السابقة
-    localStorage.getItem("tq_branch") ||
-    "صحار";
+    (url.searchParams.get("branch") || url.searchParams.get("room") || localStorage.getItem("tq_branch") || "SOHAR")
+      .toUpperCase();
   localStorage.setItem("tq_branch", b);
   return b;
 }
+
+const BRANCH_NAME = {
+  "SOHAR":"Sohar",
+  "MUSCAT":"Muscat",
+  "NIZWA":"Nizwa",
+  "IBRI":"Ibri",
+  "IBRA":"Ibra",
+  "SUR":"Sur",
+  "HAIMA":"Haima",
+  "SALALAH":"Salalah",
+  "BURAIMI":"Buraimi",
+  "MUSANDAM":"Musandam",
+  "RUSTAQ":"Rustaq"
+};
+const branchLabel = (code)=> BRANCH_NAME[code] || code;
 
 
   function makeGun(){
@@ -86,7 +99,7 @@
   const cur = branch();
   try{ sel.value = cur; }catch(e){}
   sel.addEventListener("change", ()=>{
-    const b = sel.value;
+    const b = (sel.value || "SOHAR").trim().toUpperCase();
     localStorage.setItem("tq_branch", b);
     const u = new URL(location.href);
     u.searchParams.set("branch", b);
