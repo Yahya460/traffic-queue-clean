@@ -54,7 +54,7 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
 
 
   function makeGun(){
-    const peers = ["https://gun-manhattan.herokuapp.com/gun","https://try.axe.eco/gun","https://test.era.eco/gun"];
+    const peers = ["https://try.axe.eco/gun","https://test.era.eco/gun","https://gun-manhattan.herokuapp.com/gun","https://gunjs.herokuapp.com/gun","https://gun-eu.herokuapp.com/gun","https://gun-us.herokuapp.com/gun","https://relay.peer.ooo/gun"];
     return Gun({ peers });
   }
 

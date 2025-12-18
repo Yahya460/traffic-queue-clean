@@ -77,3 +77,5 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 
 .display-page .top{position:relative;}
 .display-page .topLogo{position:absolute;top:10px;right:14px;width:64px;height:64px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.7);padding:6px;border:1px solid rgba(0,0,0,.12)}
+
+.display-page .noteBar{background:rgba(255,235,59,.70) !important;}
