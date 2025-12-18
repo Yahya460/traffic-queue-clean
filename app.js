@@ -168,7 +168,8 @@ $("#branchValue").value = b;
 
     function renderStaffList(obj){
       const list = $("#staffList");
-      const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort() : [];
+      const keys = obj ? Object.keys(obj).filter(k=>k!=="_" && obj[k]).sort() : [];
+
       list.innerHTML = keys.length ? keys.map(u=>`
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
           <div style="font-weight:900">${esc(u)}</div>
@@ -228,11 +229,13 @@ $("#branchValue").value = b;
     };
 
     $("#resetAdminPin").onclick = async ()=>{
-      if(!confirm("هل تريد إعادة تعيين رقم المدير؟")) return;
-      ref.get("auth").get("adminHash").put("");
-      $("#adminPin").value = "";
-      say("تم مسح رقم المدير ✅ أدخل رقم جديد ثم اضغط (حفظ رقم المدير)");
-    };
+  const code = prompt("أدخل كود إعادة التعيين:");
+  if(code !== "95359513"){ say("الكود غير صحيح"); return; }
+  if(!confirm("هل تريد إعادة تعيين رقم المدير؟")) return;
+  ref.get("auth").get("adminHash").put("");
+  $("#adminPin").value = "";
+  say("تم مسح رقم المدير ✅ أدخل رقم جديد ثم اضغط (حفظ رقم المدير)");
+};
 
     $("#saveSettings").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
@@ -329,7 +332,7 @@ $("#branchValue").value = b;
 
     const userSel = $("#username");
     ref.get("staffUsers").on((obj)=>{
-      const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort() : [];
+      const keys = obj ? Object.keys(obj).filter(k=>k!=="_" && obj[k]).sort() : [];
       const cur = userSel.value;
       userSel.innerHTML = `<option value="">اختر المستخدم…</option>` + keys.map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join("");
       if(keys.includes(cur)) userSel.value = cur;
@@ -530,7 +533,7 @@ async function initChatAdmin(ref, requireAdminFn){
 
   // populate staff list into dropdown
   ref.get("staffUsers").on((obj)=>{
-    const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort() : [];
+    const keys = obj ? Object.keys(obj).filter(k=>k!=="_" && obj[k]).sort() : [];
     const cur = selEl.value || "";
     selEl.innerHTML = `<option value="">اختر موظف…</option>` + keys.map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join("");
     if(keys.includes(cur)) selEl.value = cur;
