@@ -4,12 +4,12 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>شاشة العرض - نظام الدور</title>
-  <link rel="stylesheet" href="./styles.css?v=15"/>
+  <link rel="stylesheet" href="./styles.css?v=16"/>
 </head>
 <body class="display-page">
   <div class="container">
     <div class="top">
-      <img class="topLogo" src="./logo.png" onerror="this.src='./logo.svg'" alt="logo"/>
+      <img class="topLogo" src="./logo.png" alt="logo"/>
       <h1 id="instName">معهد السلامة المرورية</h1>
       <p id="branchLabel">الفرع: —</p>
     </div>
@@ -48,6 +48,15 @@
       <div class="panel">
         <div class="hd">—</div>
         <div class="bd">
+          <!-- شعار ثابت: ضع ملف logo.png داخل نفس المجلد -->
+          <div class="centerTitle">رقم التلميذ الحالي</div>
+
+          <div class="bigNumberCard">
+            <p class="bigNumber" id="curNumber">--</p>
+            <div class="genderLabel" id="genderLabel"></div>
+            <div class="lastCall" id="lastCall"></div>
+          </div>
+
           <div class="noteBar"><div class="marquee"><span id="noteSpan">—</span></div></div>
 
           <div class="centerImage" id="centerImgWrap" style="display:none">
@@ -69,7 +78,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=15"></script>
+  <script src="./app.js?v=16"></script>
   <script>window.TQ.initDisplay();</script>
 
 <script>

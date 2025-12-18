@@ -54,7 +54,7 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
 
 
   function makeGun(){
-    const peers = ["https://try.axe.eco/gun","https://test.era.eco/gun","https://gun-manhattan.herokuapp.com/gun","https://gunjs.herokuapp.com/gun","https://gun-eu.herokuapp.com/gun","https://gun-us.herokuapp.com/gun","https://relay.peer.ooo/gun"];
+    const peers = ["https://gun-manhattan.herokuapp.com/gun","https://try.axe.eco/gun","https://test.era.eco/gun"];
     return Gun({ peers });
   }
 
@@ -169,7 +169,6 @@ $("#branchValue").value = b;
     function renderStaffList(obj){
       const list = $("#staffList");
       const keys = obj ? Object.keys(obj).filter(k=>k!=="_" && obj[k]).sort() : [];
-
       list.innerHTML = keys.length ? keys.map(u=>`
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
           <div style="font-weight:900">${esc(u)}</div>
@@ -236,6 +235,7 @@ $("#branchValue").value = b;
   $("#adminPin").value = "";
   say("تم مسح رقم المدير ✅ أدخل رقم جديد ثم اضغط (حفظ رقم المدير)");
 };
+
 
     $("#saveSettings").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
@@ -486,8 +486,8 @@ function formatTime(ts){
 }
 
 function renderChat(listEl, msgs){
-  if(!listEl) return 0;
-  const items = msgs.slice(-60);
+  if(!listEl) return;
+  const items = msgs.slice(-60); // آخر 60 رسالة
   listEl.innerHTML = items.map(m=>{
     const who = m.from || "";
     const role = m.role || "";
@@ -501,7 +501,6 @@ function renderChat(listEl, msgs){
       </div>`;
   }).join("") || `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">لا توجد رسائل</div>`;
   listEl.scrollTop = listEl.scrollHeight;
-  return items.length ? (items[items.length-1].ts || 0) : 0;
 }
 
 function wireChat(ref, listEl){
@@ -513,16 +512,7 @@ function wireChat(ref, listEl){
     const idx = msgs.findIndex(x=>x.id===key);
     if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
     msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
-    const latestTs = renderChat(listEl, msgs);
-const badge = $("#chatBadgeAdmin");
-const uSel = (selEl.value||"").trim();
-if(badge && uSel){
-  const keySeen = `tq_seen_admin_${branch()}_${uSel}`;
-  const seen = Number(localStorage.getItem(keySeen) || 0);
-  const unread = latestTs > seen;
-  badge.style.display = unread ? "inline-flex" : "none";
-  badge.textContent = unread ? "جديد" : "";
-}
+    renderChat(listEl, msgs);
   });
 }
 
@@ -542,16 +532,7 @@ async function initChatAdmin(ref, requireAdminFn){
   let currentUser = "";
   let off = null;
 
-  function markSeenAdmin(u){
-  if(!u) return;
-  const key = `tq_seen_admin_${branch()}_${u}`;
-  localStorage.setItem(key, String(Date.now()));
-  const badge = $("#chatBadgeAdmin");
-  if(badge) badge.style.display = "none";
-}
-
-function attach(user){
-
+  function attach(user){
     currentUser = user;
     listEl.innerHTML = `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">${user? "جاري تحميل الرسائل…" : "اختر موظف لعرض الدردشة"}</div>`;
     // simple detach by reloading map listeners: Gun doesn't provide strong off; we use a flag
@@ -591,8 +572,6 @@ function attach(user){
     txtEl.value = "";
   };
 
-  listEl.addEventListener("click", ()=>{ const u=(selEl.value||"").trim(); if(u) markSeenAdmin(u); });
-
   $("#clearChatAdmin").onclick = async ()=>{
     const pin = ($("#adminPin").value || "").trim();
     if(pin.length < 4) return;
@@ -612,23 +591,15 @@ async function initChatStaff(ref, requireStaffFn){
   const listEl = $("#chatListStaff");
   if(!listEl) return;
 
-  let currentUser = "";
   let token = 0;
 
-  function markSeen(u){
-    if(!u) return;
-    const key = `tq_seen_staff_${branch()}_${u}`;
-    localStorage.setItem(key, String(Date.now()));
-    const badge = $("#chatBadgeStaff");
-    if(badge) badge.style.display = "none";
-  }
-
-  function attach(u){
-    currentUser = u;
+  async function attach(){
+    const username = await requireStaffFn();
+    if(!username) return null;
     token = Date.now();
     const my = token;
     const msgs = [];
-    const path = ref.get("chat").get("private").get(u).get("messages");
+    const path = ref.get("chat").get("private").get(username).get("messages");
     path.map().on((data, key)=>{
       if(token !== my) return;
       if(!data || !data.text) return;
@@ -636,46 +607,40 @@ async function initChatStaff(ref, requireStaffFn){
       const idx = msgs.findIndex(x=>x.id===key);
       if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
       msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
-
-      const latestTs = renderChat(listEl, msgs);
-      const badge = $("#chatBadgeStaff");
-      const seenKey = `tq_seen_staff_${branch()}_${u}`;
-      const seen = Number(localStorage.getItem(seenKey) || 0);
-      const unread = latestTs > seen;
-      if(badge){ badge.style.display = unread ? "inline-flex" : "none"; badge.textContent = unread ? "جديد" : ""; }
+      renderChat(listEl, msgs);
     });
+    return username;
   }
 
-  listEl.addEventListener("click", ()=> markSeen(currentUser));
-
-  $("#clearChatStaff")?.addEventListener("click", async ()=>{
-    const u = await requireStaffFn();
-    if(!u) return;
-    if(!confirm("مسح الدردشة بينك وبين المدير لهذا الفرع؟")) return;
-    ref.get("chat").get("private").get(u).put({ messages: {} });
-    markSeen(u);
-    setTimeout(()=> location.reload(), 250);
-  });
-
-  async function ensureAuthedAndAttach(){
-    const u = await requireStaffFn();
-    if(!u) return null;
-    attach(u);
-    return u;
-  }
-
-  document.querySelector("#username")?.addEventListener("change", ()=>{ ensureAuthedAndAttach(); });
+  // attach when user selected / pin provided
+  const tryAttach = async ()=>{
+    const u = (document.querySelector("#username")?.value || "").trim();
+    const p = (document.querySelector("#userPin")?.value || "").trim();
+    if(u && p) await attach();
+  };
+  document.querySelector("#username")?.addEventListener("change", tryAttach);
   document.querySelector("#userPin")?.addEventListener("input", ()=>{
-    if((document.querySelector("#userPin")?.value || "").trim().length >= 4) ensureAuthedAndAttach();
+    if((document.querySelector("#userPin")?.value || "").trim().length >= 4) tryAttach();
   });
 
-  $("#sendChatStaff").onclick = async ()=>{
-    const u = await ensureAuthedAndAttach();
-    if(!u) return;
+  $("#clearChatStaff").onclick = async ()=>{
+  const username = await requireStaffFn();
+  if(!username) return;
+  if(!confirm("مسح الدردشة بينك وبين المدير لهذا الفرع؟")) return;
+  ref.get("chat").get("private").get(username).put({ messages: {} });
+  setTimeout(()=> location.reload(), 250);
+};
+
+$("#sendChatStaff").onclick = async ()=>{
+
+    const username = await requireStaffFn();
+    if(!username) return;
+    // ensure listener attached
+    await attach();
     const txtEl = $("#chatTextStaff");
     const text = (txtEl.value || "").trim();
     if(!text) return;
-    ref.get("chat").get("private").get(u).get("messages").set({ from: u, role:"staff", text, ts: Date.now() });
+    ref.get("chat").get("private").get(username).get("messages").set({ from: username, role:"staff", text, ts: Date.now() });
     txtEl.value = "";
   };
 }
