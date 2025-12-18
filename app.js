@@ -507,42 +507,120 @@ function wireChat(ref, listEl){
 
 async function initChatAdmin(ref, requireAdminFn){
   const listEl = $("#chatListAdmin");
-  if(!listEl) return;
-  wireChat(ref, listEl);
+  const selEl  = $("#chatUserSelect");
+  if(!listEl || !selEl) return;
+
+  // populate staff list into dropdown
+  ref.get("staffUsers").on((obj)=>{
+    const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort() : [];
+    const cur = selEl.value || "";
+    selEl.innerHTML = `<option value="">اختر موظف…</option>` + keys.map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join("");
+    if(keys.includes(cur)) selEl.value = cur;
+  });
+
+  let currentUser = "";
+  let off = null;
+
+  function attach(user){
+    currentUser = user;
+    listEl.innerHTML = `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">${user? "جاري تحميل الرسائل…" : "اختر موظف لعرض الدردشة"}</div>`;
+    // simple detach by reloading map listeners: Gun doesn't provide strong off; we use a flag
+    const token = Date.now();
+    off = token;
+    const msgs = [];
+    const path = ref.get("chat").get("private").get(user).get("messages");
+    path.map().on((data, key)=>{
+      if(off !== token) return;
+      if(!data || !data.text) return;
+      const msg = { id:key, from:data.from||"", role:data.role||"", text:data.text||"", ts:data.ts||0 };
+      const idx = msgs.findIndex(x=>x.id===key);
+      if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
+      msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
+      renderChat(listEl, msgs);
+    });
+  }
+
+  selEl.addEventListener("change", ()=>{
+    const u = (selEl.value || "").trim();
+    if(!u) return attach("");
+    attach(u);
+  });
+
+  // send
   $("#sendChatAdmin").onclick = async ()=>{
     const pin = ($("#adminPin").value || "").trim();
     if(pin.length < 4) return;
     const ok = await requireAdminFn(pin);
     if(!ok.ok) return;
+    const u = (selEl.value || "").trim();
+    if(!u) return;
     const txtEl = $("#chatTextAdmin");
     const text = (txtEl.value || "").trim();
     if(!text) return;
-    ref.get("chat").get("messages").set({ from:"المدير", role:"admin", text, ts: Date.now() });
+    ref.get("chat").get("private").get(u).get("messages").set({ from:"المدير", role:"admin", text, ts: Date.now() });
     txtEl.value = "";
   };
+
   $("#clearChatAdmin").onclick = async ()=>{
     const pin = ($("#adminPin").value || "").trim();
     if(pin.length < 4) return;
     const ok = await requireAdminFn(pin);
     if(!ok.ok) return;
-    if(!confirm("مسح الدردشة لهذا الفرع؟")) return;
-    // لا يوجد delete set بسهولة، نضيف “رسالة نظام” ونفرغ عبر عقدة جديدة
-    ref.get("chat").put({ messages: {} });
-    setTimeout(()=> location.reload(), 300);
+    const u = (selEl.value || "").trim();
+    if(!u) return;
+    if(!confirm(`مسح الدردشة مع ${u} ؟`)) return;
+    ref.get("chat").get("private").get(u).put({ messages: {} });
+    setTimeout(()=> attach(u), 250);
   };
+
+  attach("");
 }
 
 async function initChatStaff(ref, requireStaffFn){
   const listEl = $("#chatListStaff");
   if(!listEl) return;
-  wireChat(ref, listEl);
+
+  let token = 0;
+
+  async function attach(){
+    const username = await requireStaffFn();
+    if(!username) return null;
+    token = Date.now();
+    const my = token;
+    const msgs = [];
+    const path = ref.get("chat").get("private").get(username).get("messages");
+    path.map().on((data, key)=>{
+      if(token !== my) return;
+      if(!data || !data.text) return;
+      const msg = { id:key, from:data.from||"", role:data.role||"", text:data.text||"", ts:data.ts||0 };
+      const idx = msgs.findIndex(x=>x.id===key);
+      if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
+      msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
+      renderChat(listEl, msgs);
+    });
+    return username;
+  }
+
+  // attach when user selected / pin provided
+  const tryAttach = async ()=>{
+    const u = (document.querySelector("#username")?.value || "").trim();
+    const p = (document.querySelector("#userPin")?.value || "").trim();
+    if(u && p) await attach();
+  };
+  document.querySelector("#username")?.addEventListener("change", tryAttach);
+  document.querySelector("#userPin")?.addEventListener("input", ()=>{
+    if((document.querySelector("#userPin")?.value || "").trim().length >= 4) tryAttach();
+  });
+
   $("#sendChatStaff").onclick = async ()=>{
     const username = await requireStaffFn();
     if(!username) return;
+    // ensure listener attached
+    await attach();
     const txtEl = $("#chatTextStaff");
     const text = (txtEl.value || "").trim();
     if(!text) return;
-    ref.get("chat").get("messages").set({ from: username, role:"staff", text, ts: Date.now() });
+    ref.get("chat").get("private").get(username).get("messages").set({ from: username, role:"staff", text, ts: Date.now() });
     txtEl.value = "";
   };
 }

@@ -111,7 +111,11 @@
   <div class="card" style="grid-column:1/-1">
     <div class="hd">دردشة المدير مع الموظفين (للفرع الحالي)</div>
     <div class="bd">
-      <div id="chatListAdmin" class="chatList"></div>
+          <label>اختر الموظف</label>
+          <select id="chatUserSelect"><option value="">اختر موظف…</option></select>
+          <small class="help">اختر موظف لعرض الدردشة الخاصة معه.</small>
+          
+          <div id="chatListAdmin" class="chatList"></div>
       <label style="margin-top:10px">اكتب رسالة</label>
       <input id="chatTextAdmin" placeholder="رسالة للموظفين..." />
       <div class="btns">
