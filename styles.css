@@ -73,7 +73,7 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 .chatMeta{font-weight:900;color:rgba(11,34,48,.75);font-size:12px;margin-bottom:4px}
 .chatText{font-weight:850}
 
+.badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 10px;border-radius:999px;border:1px solid rgba(211,47,47,.55);background:rgba(211,47,47,.15);font-weight:950;margin-inline-start:10px}
+
 .display-page .top{position:relative;}
 .display-page .topLogo{position:absolute;top:10px;right:14px;width:64px;height:64px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.7);padding:6px;border:1px solid rgba(0,0,0,.12)}
-
-.badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 10px;border-radius:999px;border:1px solid rgba(211,47,47,.55);background:rgba(211,47,47,.15);font-weight:950;margin-inline-start:10px}

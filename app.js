@@ -108,6 +108,20 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   });
 }
 
+function playPing(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = 740;
+    g.gain.value = 0.03;
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    setTimeout(()=>{ o.stop(); ctx.close(); }, 120);
+  }catch(e){}
+}
+
 function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
   // ========= Admin =========
@@ -228,13 +242,11 @@ $("#branchValue").value = b;
     };
 
     $("#resetAdminPin").onclick = async ()=>{
-  const code = prompt("أدخل كود إعادة التعيين:");
-  if(code !== "95359513"){ say("الكود غير صحيح"); return; }
-  if(!confirm("هل تريد إعادة تعيين رقم المدير؟")) return;
-  ref.get("auth").get("adminHash").put("");
-  $("#adminPin").value = "";
-  say("تم مسح رقم المدير. أدخل رقم جديد ثم (تحقق/حفظ).");
-};
+      if(!confirm("هل تريد إعادة تعيين رقم المدير؟")) return;
+      ref.get("auth").get("adminHash").put("");
+      $("#adminPin").value = "";
+      say("تم مسح رقم المدير ✅ أدخل رقم جديد ثم اضغط (حفظ رقم المدير)");
+    };
 
     $("#saveSettings").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
@@ -478,20 +490,6 @@ makeBucketRenderer("men", $("#menList"));
 makeBucketRenderer("women", $("#womenList"));  }
 
   // ========= Chat (Admin <-> Staff) =========
-function playPing(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "sine";
-    o.frequency.value = 740;
-    g.gain.value = 0.03; // خفيف
-    o.connect(g); g.connect(ctx.destination);
-    o.start();
-    setTimeout(()=>{ o.stop(); ctx.close(); }, 120);
-  }catch(e){}
-}
-
 function formatTime(ts){
   try{
     return new Date(ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'});
@@ -499,7 +497,7 @@ function formatTime(ts){
 }
 
 function renderChat(listEl, msgs){
-  if(!listEl) return 0;
+  if(!listEl) return;
   const items = msgs.slice(-60); // آخر 60 رسالة
   listEl.innerHTML = items.map(m=>{
     const who = m.from || "";
@@ -514,7 +512,6 @@ function renderChat(listEl, msgs){
       </div>`;
   }).join("") || `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">لا توجد رسائل</div>`;
   listEl.scrollTop = listEl.scrollHeight;
-  return items.length ? (items[items.length-1].ts || 0) : 0;
 }
 
 function wireChat(ref, listEl){
@@ -526,26 +523,17 @@ function wireChat(ref, listEl){
     const idx = msgs.findIndex(x=>x.id===key);
     if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
     msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
-    const latestTs = const latestTs = renderChat(listEl, msgs);
-      const usernameNow = username;
-      const badge = $("#chatBadgeStaff");
-      const key = `tq_seen_staff_${branch()}_${usernameNow}`;
-      const seen = Number(localStorage.getItem(key) || 0);
-      const unread = latestTs > seen;
-      if(badge){ badge.style.display = unread ? "inline-flex" : "none"; badge.textContent = unread ? "جديد" : ""; }
-      if(unread && (msg.role==="admin")){ playPing(); }
-
-      // unread badge
-      const badge = $("#chatBadgeAdmin");
-      const u = (selEl.value||"").trim();
-      if(badge && u){
-        const key = `tq_seen_admin_${branch()}_${u}`;
-        const seen = Number(localStorage.getItem(key) || 0);
-        const unread = latestTs > seen;
-        badge.style.display = unread ? "inline-flex" : "none";
-        if(unread){ badge.textContent = "جديد"; playPing(); }
-      }
-
+    const latestTs = renderChat(listEl, msgs);
+const badge = $("#chatBadgeAdmin");
+const uSel = (selEl.value||"").trim();
+if(badge && uSel){
+  const keySeen = `tq_seen_admin_${branch()}_${uSel}`;
+  const seen = Number(localStorage.getItem(keySeen) || 0);
+  const unread = latestTs > seen;
+  badge.style.display = unread ? "inline-flex" : "none";
+  badge.textContent = unread ? "جديد" : "";
+  if(unread && msg.role==="staff"){ playPing(); }
+}
   });
 }
 
@@ -565,7 +553,16 @@ async function initChatAdmin(ref, requireAdminFn){
   let currentUser = "";
   let off = null;
 
-  function attach(user){
+  function markSeenAdmin(u){
+  if(!u) return;
+  const key = `tq_seen_admin_${branch()}_${u}`;
+  localStorage.setItem(key, String(Date.now()));
+  const badge = $("#chatBadgeAdmin");
+  if(badge) badge.style.display = "none";
+}
+
+function attach(user){
+
     currentUser = user;
     listEl.innerHTML = `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">${user? "جاري تحميل الرسائل…" : "اختر موظف لعرض الدردشة"}</div>`;
     // simple detach by reloading map listeners: Gun doesn't provide strong off; we use a flag
@@ -580,44 +577,14 @@ async function initChatAdmin(ref, requireAdminFn){
       const idx = msgs.findIndex(x=>x.id===key);
       if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
       msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
-      const latestTs = const latestTs = renderChat(listEl, msgs);
-      const usernameNow = username;
-      const badge = $("#chatBadgeStaff");
-      const key = `tq_seen_staff_${branch()}_${usernameNow}`;
-      const seen = Number(localStorage.getItem(key) || 0);
-      const unread = latestTs > seen;
-      if(badge){ badge.style.display = unread ? "inline-flex" : "none"; badge.textContent = unread ? "جديد" : ""; }
-      if(unread && (msg.role==="admin")){ playPing(); }
-
-      // unread badge
-      const badge = $("#chatBadgeAdmin");
-      const u = (selEl.value||"").trim();
-      if(badge && u){
-        const key = `tq_seen_admin_${branch()}_${u}`;
-        const seen = Number(localStorage.getItem(key) || 0);
-        const unread = latestTs > seen;
-        badge.style.display = unread ? "inline-flex" : "none";
-        if(unread){ badge.textContent = "جديد"; playPing(); }
-      }
-
+      renderChat(listEl, msgs);
     });
   }
 
-  function markSeenAdmin(u, ts){
-  if(!u) return;
-  const key = `tq_seen_admin_${branch()}_${u}`;
-  localStorage.setItem(key, String(ts||Date.now()));
-  const badge = $("#chatBadgeAdmin");
-  if(badge) badge.style.display = "none";
-}
-
-selEl.addEventListener("change", ()=>{
-
+  selEl.addEventListener("change", ()=>{
     const u = (selEl.value || "").trim();
     if(!u) return attach("");
     attach(u);
-    setTimeout(()=>{ markSeenAdmin(u, Date.now()); }, 100);
-
   });
 
   // send
@@ -634,6 +601,8 @@ selEl.addEventListener("change", ()=>{
     ref.get("chat").get("private").get(u).get("messages").set({ from:"المدير", role:"admin", text, ts: Date.now() });
     txtEl.value = "";
   };
+
+  listEl.addEventListener("click", ()=>{ const u=(selEl.value||"").trim(); if(u) markSeenAdmin(u); });
 
   $("#clearChatAdmin").onclick = async ()=>{
     const pin = ($("#adminPin").value || "").trim();
@@ -654,15 +623,23 @@ async function initChatStaff(ref, requireStaffFn){
   const listEl = $("#chatListStaff");
   if(!listEl) return;
 
+  let currentUser = "";
   let token = 0;
 
-  async function attach(){
-    const username = await requireStaffFn();
-    if(!username) return null;
+  function markSeen(u){
+    if(!u) return;
+    const key = `tq_seen_staff_${branch()}_${u}`;
+    localStorage.setItem(key, String(Date.now()));
+    const badge = $("#chatBadgeStaff");
+    if(badge) badge.style.display = "none";
+  }
+
+  function attach(u){
+    currentUser = u;
     token = Date.now();
     const my = token;
     const msgs = [];
-    const path = ref.get("chat").get("private").get(username).get("messages");
+    const path = ref.get("chat").get("private").get(u).get("messages");
     path.map().on((data, key)=>{
       if(token !== my) return;
       if(!data || !data.text) return;
@@ -670,90 +647,64 @@ async function initChatStaff(ref, requireStaffFn){
       const idx = msgs.findIndex(x=>x.id===key);
       if(idx>=0) msgs[idx]=msg; else msgs.push(msg);
       msgs.sort((a,b)=> (a.ts||0)-(b.ts||0));
-      const latestTs = const latestTs = renderChat(listEl, msgs);
-      const usernameNow = username;
+
+      const latestTs = renderChat(listEl, msgs);
       const badge = $("#chatBadgeStaff");
-      const key = `tq_seen_staff_${branch()}_${usernameNow}`;
-      const seen = Number(localStorage.getItem(key) || 0);
+      const seenKey = `tq_seen_staff_${branch()}_${u}`;
+      const seen = Number(localStorage.getItem(seenKey) || 0);
       const unread = latestTs > seen;
       if(badge){ badge.style.display = unread ? "inline-flex" : "none"; badge.textContent = unread ? "جديد" : ""; }
-      if(unread && (msg.role==="admin")){ playPing(); }
-
-      // unread badge
-      const badge = $("#chatBadgeAdmin");
-      const u = (selEl.value||"").trim();
-      if(badge && u){
-        const key = `tq_seen_admin_${branch()}_${u}`;
-        const seen = Number(localStorage.getItem(key) || 0);
-        const unread = latestTs > seen;
-        badge.style.display = unread ? "inline-flex" : "none";
-        if(unread){ badge.textContent = "جديد"; playPing(); }
-      }
-
+      if(unread && msg.role==="admin"){ playPing(); }
     });
-    return username;
   }
 
-  // attach when user selected / pin provided
-  const tryAttach = async ()=>{
-    const u = (document.querySelector("#username")?.value || "").trim();
-    const p = (document.querySelector("#userPin")?.value || "").trim();
-    if(u && p) await attach();
-  };
-  document.querySelector("#username")?.addEventListener("change", tryAttach);
-  // احتياط: تفعيل الاستقبال تلقائياً إذا الاسم والرقم موجودين
-  setInterval(()=>{ tryAttach(); }, 1500);
+  // عند الضغط على قائمة الدردشة يعتبر "تمت القراءة"
+  listEl.addEventListener("click", ()=> markSeen(currentUser));
 
-  function markSeenStaff(usernameNow){
-  if(!usernameNow) return;
-  const key = `tq_seen_staff_${branch()}_${usernameNow}`;
-  localStorage.setItem(key, String(Date.now()));
-  const badge = $("#chatBadgeStaff");
-  if(badge) badge.style.display = "none";
-}
-
-$("#chatListStaff")?.addEventListener("click", async ()=>{
-  const u = (document.querySelector("#username")?.value || "").trim();
-  if(u) markSeenStaff(u);
-});
-
-document.querySelector("#userPin")?.addEventListener("input", ()=>{
-
-    if((document.querySelector("#userPin")?.value || "").trim().length >= 4) tryAttach();
+  // زر حذف الدردشة
+  $("#clearChatStaff")?.addEventListener("click", async ()=>{
+    const u = await requireStaffFn();
+    if(!u) return;
+    if(!confirm("مسح الدردشة بينك وبين المدير لهذا الفرع؟")) return;
+    ref.get("chat").get("private").get(u).put({ messages: {} });
+    markSeen(u);
+    setTimeout(()=> location.reload(), 250);
   });
 
-  $("#clearChatStaff").onclick = async ()=>{
-  const username = await requireStaffFn();
-  if(!username) return;
-  if(!confirm("مسح الدردشة بينك وبين المدير لهذا الفرع؟")) return;
-  ref.get("chat").get("private").get(username).put({ messages: {} });
-  setTimeout(()=> location.reload(), 250);
-};
+  // محاولة اعتماد المستخدم وتفعيل الاستقبال (بدون إرسال)
+  async function ensureAuthedAndAttach(){
+    const u = await requireStaffFn();
+    if(!u) return null;
+    // خزّن آخر مستخدم لتسهيل فتح الدردشة
+    localStorage.setItem(`tq_last_staff_${branch()}`, u);
+    attach(u);
+    return u;
+  }
 
-$("#sendChatStaff").onclick = async ()=>{
+  // عند تغيير الاسم / إدخال الرقم نحاول التفعيل
+  document.querySelector("#username")?.addEventListener("change", ()=>{ ensureAuthedAndAttach(); });
+  document.querySelector("#userPin")?.addEventListener("input", ()=>{
+    if((document.querySelector("#userPin")?.value || "").trim().length >= 4) ensureAuthedAndAttach();
+  });
 
-    const username = await requireStaffFn();
-    if(!username) return;
-    // ensure listener attached
-    await attach();
+  // احتياط: إذا كان الاسم والرقم موجودين بالفعل
+  setTimeout(()=>{ 
+    const u = (document.querySelector("#username")?.value || "").trim();
+    const p = (document.querySelector("#userPin")?.value || "").trim();
+    if(u && p) ensureAuthedAndAttach();
+  }, 400);
+
+  // إرسال رسالة
+  $("#sendChatStaff").onclick = async ()=>{
+    const u = await ensureAuthedAndAttach();
+    if(!u) return;
     const txtEl = $("#chatTextStaff");
     const text = (txtEl.value || "").trim();
     if(!text) return;
-    ref.get("chat").get("private").get(username).get("messages").set({ from: username, role:"staff", text, ts: Date.now() });
+    ref.get("chat").get("private").get(u).get("messages").set({ from: u, role:"staff", text, ts: Date.now() });
     txtEl.value = "";
   };
 }
 
-function toggleFullscreen(){
-  try{
-    if(!document.fullscreenElement){
-      (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
-    }else{
-      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    }
-  }catch(e){}
-}
-
 window.TQ = { initAdmin, initStaff, initDisplay };
 })();
-document.addEventListener('DOMContentLoaded', ()=>{ const b=document.getElementById('fsBtn'); if(b) b.onclick = toggleFullscreen; });
