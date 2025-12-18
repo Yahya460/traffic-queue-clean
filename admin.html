@@ -10,7 +10,7 @@
   <div class="container">
     <div class="top">
       <h1>لوحة المدير</h1>
-      <p>إعدادات + رقم المدير + إدارة الموظفين + شعار وصورة + الملاحظة</p>
+      <p>إعدادات + رقم المدير + إدارة الموظفين + الصورة + الملاحظة</p>
     </div>
 
     <div class="subbar">
@@ -20,12 +20,12 @@
 
     <div class="cardRow">
       <div class="card">
-        <div class="hd">الغرفة (Room)</div>
+        <div class="hd">الفرع</div>
         <div class="bd">
-          <label>Room</label>
-          <input id="roomValue" placeholder="sohar-demo"/>
-          <div class="btns"><button class="gray" id="setRoom">تغيير الغرفة</button></div>
-          <small class="help">انسخ نفس Room إلى الموظف وشاشة العرض.</small>
+          <label>اسم الفرع</label>
+          <input id="branchValue" placeholder="sohar-demo"/>
+          <div class="btns"><button class="gray" id="setBranch">تغيير الفرع</button></div>
+          <small class="help">انسخ نفس الفرع إلى الموظف وشاشة العرض.</small>
         </div>
       </div>
 
@@ -46,7 +46,7 @@
         <div class="hd">إعدادات النظام</div>
         <div class="bd">
           <label>اسم الجهة</label>
-          <input id="instituteName" placeholder="معهد السلامة المرورية - صحار"/>
+          <input id="instituteName" placeholder="معهد السلامة المرورية"/>
           <label style="margin-top:10px">عدد الأرقام المحفوظة في السجل</label>
           <input id="historyLimit" type="number" min="3" max="60" value="15"/>
           <label style="margin-top:10px">النص السفلي</label>
@@ -71,17 +71,7 @@
       </div>
 
       <div class="card">
-        <div class="hd">الشعار (يظهر أعلى شاشة العرض)</div>
-        <div class="bd">
-          <label>رفع شعار (PNG/JPG)</label>
-          <input id="logoFile" type="file" accept="image/*"/>
-          <small class="help">يفضل حجم خفيف.</small>
-          <div class="centerImage" id="logoHolder"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="hd">إدارة الموظفين (إضافة/حذف/تغيير اسم المستخدم)</div>
+        <div class="hd">إدارة الموظفين</div>
         <div class="bd">
           <label>اسم المستخدم الجديد</label>
           <input id="newUsername" placeholder="مثال: يوسف"/>
@@ -92,24 +82,17 @@
           <div style="margin-top:12px" id="staffList"></div>
         </div>
       </div>
-    </div>
 
-    <div class="cardRow" style="margin-top:14px">
-      <div class="card" style="grid-column:1/-1">
-        <div class="hd">الصورة في العمود الأوسط (تظهر في شاشة العرض)</div>
+      <div class="card">
+        <div class="hd">الصورة في العمود الأوسط</div>
         <div class="bd">
           <div class="pill" id="imgName"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
-            <div>
-              <label>اختر صورة (PNG/JPG)</label>
-              <input id="imgFile" type="file" accept="image/*"/>
-              <small class="help">يفضّل صورة خفيفة.</small>
-              <div class="btns">
-                <button class="danger" id="clearImage">حذف الصورة</button>
-              </div>
-            </div>
-            <div class="centerImage" id="imgHolder"></div>
+          <label>اختر صورة (PNG/JPG)</label>
+          <input id="imgFile" type="file" accept="image/*"/>
+          <div class="btns">
+            <button class="danger" id="clearImage">حذف الصورة</button>
           </div>
+          <div class="centerImage" id="imgHolder" style="margin-top:10px"></div>
         </div>
       </div>
     </div>

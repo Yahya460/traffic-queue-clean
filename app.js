@@ -27,11 +27,12 @@
     }catch(e){}
   }
 
-  function room(){
+  // "الفرع" هو نفسه مفتاح البيانات
+  function branch(){
     const url = new URL(location.href);
-    const r = url.searchParams.get("room") || localStorage.getItem("tq_room") || "sohar-demo";
-    localStorage.setItem("tq_room", r);
-    return r;
+    const b = url.searchParams.get("branch") || localStorage.getItem("tq_branch") || "sohar-demo";
+    localStorage.setItem("tq_branch", b);
+    return b;
   }
 
   function makeGun(){
@@ -39,18 +40,17 @@
     return Gun({ peers });
   }
 
-  function refFor(gun, r){ return gun.get("traffic_queue_clean").get(r); }
+  function refFor(gun, b){ return gun.get("traffic_queue_clean").get(b); }
 
   function defaults(){
     return {
-      settings:{ historyLimit:15, instituteName:"معهد السلامة المرورية - صحار", tickerText:"يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح" },
+      settings:{ historyLimit:15, instituteName:"معهد السلامة المرورية", tickerText:"يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح" },
       current:{ number:"--", gender:"", staff:"", ts:0 },
       note:{ text:"", staff:"", ts:0 },
       history:{ men:{}, women:{} },
       centerImage:{ dataUrl:"", name:"", ts:0 },
       auth:{ adminHash:"" },
-      staffUsers:{},
-      brand:{ logoDataUrl:"" }
+      staffUsers:{}
     };
   }
 
@@ -79,12 +79,12 @@
 
   // ========= Admin =========
   async function initAdmin(){
-    const r = room();
+    const b = branch();
     const gun = makeGun();
-    const ref = refFor(gun, r);
+    const ref = refFor(gun, b);
     ensure(ref);
 
-    $("#roomValue").value = r;
+    $("#branchValue").value = b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
@@ -97,12 +97,6 @@
     });
 
     ref.get("note").on((n)=>{ if(n) $("#adminNote").value = n.text || ""; });
-
-    ref.get("brand").get("logoDataUrl").on((v)=>{
-      const holder = $("#logoHolder");
-      holder.innerHTML = v ? `<img alt="logo" src="${v}" style="max-width:120px;max-height:120px;object-fit:contain">`
-                          : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد شعار</div>`;
-    });
 
     ref.get("centerImage").on((img)=>{
       const holder = $("#imgHolder");
@@ -174,9 +168,9 @@
     }
     ref.get("staffUsers").on(renderStaffList);
 
-    $("#setRoom").onclick = ()=>{
-      const nr = ($("#roomValue").value || "sohar-demo").trim();
-      const u = new URL(location.href); u.searchParams.set("room", nr); location.href = u.toString();
+    $("#setBranch").onclick = ()=>{
+      const nb = ($("#branchValue").value || "sohar-demo").trim();
+      const u = new URL(location.href); u.searchParams.set("branch", nb); location.href = u.toString();
     };
 
     $("#saveAdminPin").onclick = async ()=>{
@@ -202,7 +196,7 @@
       if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ اضغط حفظ الإعدادات مرة أخرى"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       ref.get("settings").put({
-        instituteName: ($("#instituteName").value || "").trim() || "معهد السلامة المرورية - صحار",
+        instituteName: ($("#instituteName").value || "").trim() || "معهد السلامة المرورية",
         historyLimit: Math.max(3, Math.min(60, parseInt($("#historyLimit").value || "15",10))),
         tickerText: ($("#tickerText").value || "").trim() || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح"
       });
@@ -231,19 +225,6 @@
       $("#newUsername").value=""; $("#newUserPin").value="";
       say("تمت إضافة الموظف ✅");
     };
-
-    $("#logoFile").addEventListener("change", async (e)=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); e.target.value=""; return; }
-      const first = await setAdminIfEmpty(pin);
-      if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ أعد رفع الشعار"); e.target.value=""; return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); e.target.value=""; return; }
-      const file = e.target.files && e.target.files[0]; if(!file) return;
-      const dataUrl = await new Promise((res, rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); });
-      ref.get("brand").get("logoDataUrl").put(dataUrl);
-      say("تم رفع الشعار ✅");
-      e.target.value="";
-    });
 
     $("#imgFile").addEventListener("change", async (e)=>{
       const pin = ($("#adminPin").value || "").trim();
@@ -286,12 +267,12 @@
 
   // ========= Staff =========
   async function initStaff(){
-    const r = room();
+    const b = branch();
     const gun = makeGun();
-    const ref = refFor(gun, r);
+    const ref = refFor(gun, b);
     ensure(ref);
 
-    $("#roomValue").value = r;
+    $("#branchValue").value = b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
@@ -328,9 +309,9 @@
       return u;
     }
 
-    $("#setRoom").onclick = ()=>{
-      const nr = ($("#roomValue").value || "sohar-demo").trim();
-      const u = new URL(location.href); u.searchParams.set("room", nr); location.href = u.toString();
+    $("#setBranch").onclick = ()=>{
+      const nb = ($("#branchValue").value || "sohar-demo").trim();
+      const u = new URL(location.href); u.searchParams.set("branch", nb); location.href = u.toString();
     };
 
     $("#callNext").onclick = async ()=>{
@@ -348,20 +329,15 @@
       const prev = await new Promise(res=> ref.get("current").once(res));
       const now = Date.now();
 
-      // نقل السابق إلى سجل جنسه
       if(prev && prev.number && prev.number !== "--" && prev.gender){
         const bucketPrev = (prev.gender==="women") ? "women" : "men";
         ref.get("history").get(bucketPrev).get(String(now-1)).put({ number: prev.number, staff: prev.staff || "", ts: now-1 });
-
-        // trim
         ref.get("history").get(bucketPrev).once((obj)=>{
           if(!obj) return;
           const keys = Object.keys(obj).filter(k=>k!=="_").sort();
           const extra = keys.length - limit;
           if(extra > 0){
-            for(let i=0;i<extra;i++){
-              ref.get("history").get(bucketPrev).get(keys[i]).put(null);
-            }
+            for(let i=0;i<extra;i++) ref.get("history").get(bucketPrev).get(keys[i]).put(null);
           }
         });
       }
@@ -373,24 +349,17 @@
 
   // ========= Display =========
   async function initDisplay(){
-    const r = room();
+    const b = branch();
     const gun = makeGun();
-    const ref = refFor(gun, r);
+    const ref = refFor(gun, b);
     ensure(ref);
 
-    $("#roomLabel").textContent = `الغرفة: ${r}`;
+    $("#branchLabel").textContent = `الفرع: ${b}`;
     listenConn(gun, $("#conn"), ref);
 
     ref.get("settings").on((s)=>{
       if(s?.instituteName) $("#instName").textContent = s.instituteName;
       $("#tickerText").textContent = s?.tickerText || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح";
-    });
-
-    ref.get("brand").get("logoDataUrl").on((v)=>{
-      const wrap = $("#logoWrap");
-      const img = $("#logoImg");
-      if(v){ img.src = v; wrap.style.display="flex"; }
-      else { img.src=""; wrap.style.display="none"; }
     });
 
     let lastTs = 0;

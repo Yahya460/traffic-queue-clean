@@ -20,19 +20,17 @@
 
     <div class="cardRow">
       <div class="card">
-        <div class="hd">دخول الموظف</div>
+        <div class="hd">الفرع</div>
         <div class="bd">
-          <label>Room</label>
-          <input id="roomValue" placeholder="sohar-demo"/>
-          <div class="btns"><button class="gray" id="setRoom">تغيير الغرفة</button></div>
-          <small class="help">استخدم نفس Room في شاشة العرض والمدير.</small>
+          <label>اسم الفرع</label>
+          <input id="branchValue" placeholder="sohar-demo"/>
+          <div class="btns"><button class="gray" id="setBranch">تغيير الفرع</button></div>
+          <small class="help">استخدم نفس الفرع في شاشة العرض والمدير.</small>
 
           <hr style="border:0;border-top:1px solid rgba(0,0,0,.12);margin:12px 0">
 
           <label>اسم المستخدم</label>
-          <select id="username">
-            <option value="">اختر المستخدم…</option>
-          </select>
+          <select id="username"><option value="">اختر المستخدم…</option></select>
 
           <label style="margin-top:10px">رقم الموظف</label>
           <input id="userPin" type="password" placeholder="أدخل الرقم"/>
@@ -52,8 +50,7 @@
             <option value="women">نساء</option>
           </select>
           <div class="btns"><button class="primary" id="callNext">نداء</button></div>
-
-          <small class="help" style="margin-top:10px">الملاحظة أصبحت من صلاحيات المدير فقط ✅</small>
+          <small class="help" style="margin-top:10px">الملاحظة من صلاحيات المدير فقط ✅</small>
         </div>
       </div>
 

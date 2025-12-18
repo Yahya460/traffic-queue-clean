@@ -9,30 +9,31 @@
 <body class="display-page">
   <div class="container">
     <div class="top">
-      <h1 id="instName">نظام الدور - معهد السلامة المرورية بصحار</h1>
-      <p id="roomLabel">الغرفة: —</p>
+      <h1 id="instName">معهد السلامة المرورية</h1>
+      <p id="branchLabel">الفرع: —</p>
     </div>
 
     <div class="subbar">
       <div class="pill">الحالة: <b id="conn">غير متصل…</b></div>
-      <!-- حذف زر الرجوع -->
     </div>
 
     <div class="grid3">
       <div class="panel">
         <div class="hd">الرجال - تم النداء</div>
         <div class="bd">
-          <div class="box">
-            <div class="numGrid" id="menList"></div>
-          </div>
+          <div class="box"><div class="numGrid" id="menList"></div></div>
         </div>
       </div>
 
       <div class="panel">
         <div class="hd">رقم التلميذ الحالي</div>
         <div class="bd">
-          <div class="centerLogo" id="logoWrap" style="display:none">
-            <img id="logoImg" alt="logo" src=""/>
+          <!-- شعار ثابت: ضع ملف logo.png داخل نفس المجلد -->
+          <div class="centerLogo">
+            <picture>
+              <source srcset="./logo.png"/>
+              <img alt="logo" src="./logo.svg"/>
+            </picture>
           </div>
 
           <div class="centerTitle">رقم التلميذ الحالي</div>
@@ -43,9 +44,7 @@
             <div class="lastCall" id="lastCall"></div>
           </div>
 
-          <div class="noteBar">
-            <div class="marquee"><span id="noteSpan">—</span></div>
-          </div>
+          <div class="noteBar"><div class="marquee"><span id="noteSpan">—</span></div></div>
 
           <div class="centerImage" id="centerImgWrap" style="display:none">
             <img id="centerImg" alt="center" src=""/>
@@ -59,9 +58,7 @@
       <div class="panel">
         <div class="hd">النساء - تم النداء</div>
         <div class="bd">
-          <div class="box">
-            <div class="numGrid" id="womenList"></div>
-          </div>
+          <div class="box"><div class="numGrid" id="womenList"></div></div>
         </div>
       </div>
     </div>

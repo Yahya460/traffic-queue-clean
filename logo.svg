@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#e3f2fd" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="220" height="220" rx="24" fill="url(#g)" stroke="#0b73c9" stroke-width="6"/>
+  <circle cx="120" cy="110" r="54" fill="none" stroke="#0b73c9" stroke-width="10"/>
+  <path d="M120 62v96" stroke="#d32f2f" stroke-width="10" stroke-linecap="round"/>
+  <text x="120" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#0b2230">معهد السلامة المرورية</text>
+</svg>
