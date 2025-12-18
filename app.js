@@ -29,11 +29,16 @@
 
   // "الفرع" هو نفسه مفتاح البيانات
   function branch(){
-    const url = new URL(location.href);
-    const b = url.searchParams.get("branch") || localStorage.getItem("tq_branch") || "sohar-demo";
-    localStorage.setItem("tq_branch", b);
-    return b;
-  }
+  const url = new URL(location.href);
+  const b =
+    url.searchParams.get("branch") ||
+    url.searchParams.get("room") || // توافق مع النسخ السابقة
+    localStorage.getItem("tq_branch") ||
+    "صحار";
+  localStorage.setItem("tq_branch", b);
+  return b;
+}
+
 
   function makeGun(){
     const peers = ["https://gun-manhattan.herokuapp.com/gun","https://try.axe.eco/gun","https://test.era.eco/gun"];
@@ -75,7 +80,22 @@
     gun.on("bye", ()=>{ ok = false; });
   }
 
-  function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function wireBranchSelect(){
+  const sel = $("#branchSelect");
+  if(!sel) return;
+  const cur = branch();
+  try{ sel.value = cur; }catch(e){}
+  sel.addEventListener("change", ()=>{
+    const b = sel.value;
+    localStorage.setItem("tq_branch", b);
+    const u = new URL(location.href);
+    u.searchParams.set("branch", b);
+    u.searchParams.delete("room");
+    location.href = u.toString();
+  });
+}
+
+function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
   // ========= Admin =========
   async function initAdmin(){
@@ -84,7 +104,10 @@
     const ref = refFor(gun, b);
     ensure(ref);
 
-    $("#branchValue").value = b;
+    
+
+    wireBranchSelect();
+$("#branchValue").value = b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
@@ -169,9 +192,14 @@
     ref.get("staffUsers").on(renderStaffList);
 
     $("#setBranch").onclick = ()=>{
-      const nb = ($("#branchValue").value || "sohar-demo").trim();
-      const u = new URL(location.href); u.searchParams.set("branch", nb); location.href = u.toString();
-    };
+  const sel = $("#branchSelect") || $("#branchValue");
+  const nb = ((sel && sel.value) ? sel.value : "صحار").trim();
+  localStorage.setItem("tq_branch", nb);
+  const u = new URL(location.href);
+  u.searchParams.set("branch", nb);
+  u.searchParams.delete("room");
+  location.href = u.toString();
+};
 
     $("#saveAdminPin").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
@@ -272,7 +300,10 @@
     const ref = refFor(gun, b);
     ensure(ref);
 
-    $("#branchValue").value = b;
+    
+
+    wireBranchSelect();
+$("#branchValue").value = b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
@@ -310,9 +341,14 @@
     }
 
     $("#setBranch").onclick = ()=>{
-      const nb = ($("#branchValue").value || "sohar-demo").trim();
-      const u = new URL(location.href); u.searchParams.set("branch", nb); location.href = u.toString();
-    };
+  const sel = $("#branchSelect") || $("#branchValue");
+  const nb = ((sel && sel.value) ? sel.value : "صحار").trim();
+  localStorage.setItem("tq_branch", nb);
+  const u = new URL(location.href);
+  u.searchParams.set("branch", nb);
+  u.searchParams.delete("room");
+  location.href = u.toString();
+};
 
     $("#callNext").onclick = async ()=>{
       const username = await requireStaff();
@@ -354,7 +390,10 @@
     const ref = refFor(gun, b);
     ensure(ref);
 
-    $("#branchLabel").textContent = `الفرع: ${b}`;
+    
+
+    wireBranchSelect();
+$("#branchLabel").textContent = `الفرع: ${b}`;
     listenConn(gun, $("#conn"), ref);
 
     ref.get("settings").on((s)=>{

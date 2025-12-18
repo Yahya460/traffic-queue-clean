@@ -68,3 +68,4 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 .display-page .noteBar,
 .display-page .centerImage{background:rgba(255,235,59,.28)!important}
 .display-page .panel .hd{background:rgba(255,235,59,.40)}
+.pill select{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.18);background:rgba(255,255,255,.85);font-weight:900}

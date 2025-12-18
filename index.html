@@ -21,8 +21,21 @@
       <div class="card">
         <div class="hd">الفرع</div>
         <div class="bd">
-          <label>اسم الفرع</label>
-          <input id="branch" placeholder="مثال: صحار - القاعة الرئيسية"/>
+          <label>الفرع</label>
+          <select id="branchSelect">
+            <option value="صحار">1- صحار</option>
+<option value="مسقط">2- مسقط</option>
+<option value="نزوى">3- نزوى</option>
+<option value="عبري">4- عبري</option>
+<option value="إبراء">5- إبراء</option>
+<option value="صور">6- صور</option>
+<option value="هيماء">7- هيماء</option>
+<option value="صلالة">8- صلالة</option>
+<option value="البريمي">9- البريمي</option>
+<option value="مسندم">10- مسندم</option>
+<option value="الرستاق">11- الرستاق</option>
+          </select>
+          <input id="branch" type="hidden" />
           <small class="help">اكتب اسم فرع ثابت واستخدمه في المدير/الموظف/العرض.</small>
           <div class="btns">
             <button class="gray" id="saveBranch">حفظ الفرع</button>
@@ -56,26 +69,29 @@
   </div>
 
   <script>
-    const inp = document.getElementById("branch");
-    inp.value = new URL(location.href).searchParams.get("branch") || localStorage.getItem("tq_branch") || "sohar-demo";
-    document.getElementById("branchPill").textContent = inp.value;
+  const sel = document.getElementById("branchSelect");
+  const url = new URL(location.href);
+  const saved = url.searchParams.get("branch") || url.searchParams.get("room") || localStorage.getItem("tq_branch") || "صحار";
+  if(sel) sel.value = saved;
+  document.getElementById("branchPill").textContent = saved;
 
-    function go(page){
-      const b = (inp.value || "sohar-demo").trim();
-      localStorage.setItem("tq_branch", b);
-      const u = new URL(page, location.href);
-      u.searchParams.set("branch", b);
-      location.href = u.toString();
-    }
-    document.getElementById("goAdmin").onclick = ()=>go("./admin.html");
-    document.getElementById("goStaff").onclick = ()=>go("./staff.html");
-    document.getElementById("goDisplay").onclick = ()=>go("./display.html");
-    document.getElementById("saveBranch").onclick = ()=>{
-      const b = (inp.value || "sohar-demo").trim();
-      localStorage.setItem("tq_branch", b);
-      document.getElementById("branchPill").textContent = b;
-      alert("تم حفظ الفرع ✅");
-    };
-  </script>
+  function go(page){
+    const b = ((sel && sel.value) ? sel.value : "صحار").trim();
+    localStorage.setItem("tq_branch", b);
+    const u = new URL(page, location.href);
+    u.searchParams.set("branch", b);
+    u.searchParams.delete("room");
+    location.href = u.toString();
+  }
+  document.getElementById("goAdmin").onclick = ()=>go("./admin.html");
+  document.getElementById("goStaff").onclick = ()=>go("./staff.html");
+  document.getElementById("goDisplay").onclick = ()=>go("./display.html");
+  document.getElementById("saveBranch").onclick = ()=>{
+    const b = ((sel && sel.value) ? sel.value : "صحار").trim();
+    localStorage.setItem("tq_branch", b);
+    document.getElementById("branchPill").textContent = b;
+    alert("تم حفظ الفرع ✅");
+  };
+</script>
 </body>
 </html>
