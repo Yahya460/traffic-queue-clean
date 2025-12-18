@@ -456,16 +456,24 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       if(img?.dataUrl){ holder.src = img.dataUrl; wrap.style.display="block"; }
       else { holder.src=""; wrap.style.display="none"; }
     });
-
-    function renderList(obj, target){
-      const keys = obj ? Object.keys(obj).filter(k=>k!=="_").sort((a,b)=>Number(b)-Number(a)) : [];
-      const nums = keys.map(k => obj[k]?.number).filter(Boolean);
-      target.innerHTML = nums.map(n=>`<div class="tile">${esc(n)}</div>`).join("") ||
-        `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
+// قراءة السجل بطريقة map().on لضمان وصول العناصر الفرعية (بدون مشاكل مزامنة)
+function makeBucketRenderer(bucket, target){
+  const store = {};
+  ref.get("history").get(bucket).map().on((val, key)=>{
+    if(!key || key === "_") return;
+    if(!val || val === null){
+      delete store[key];
+    }else{
+      store[key] = val;
     }
-    ref.get("history").get("men").on((h)=> renderList(h, $("#menList")));
-    ref.get("history").get("women").on((h)=> renderList(h, $("#womenList")));
-  }
+    const keys = Object.keys(store).sort((a,b)=>Number(b)-Number(a));
+    const nums = keys.map(k => store[k]?.number).filter(Boolean);
+    target.innerHTML = nums.map(n=>`<div class="tile">${esc(n)}</div>`).join("") ||
+      `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
+  });
+}
+makeBucketRenderer("men", $("#menList"));
+makeBucketRenderer("women", $("#womenList"));  }
 
   // ========= Chat (Admin <-> Staff) =========
 function formatTime(ts){
@@ -612,7 +620,16 @@ async function initChatStaff(ref, requireStaffFn){
     if((document.querySelector("#userPin")?.value || "").trim().length >= 4) tryAttach();
   });
 
-  $("#sendChatStaff").onclick = async ()=>{
+  $("#clearChatStaff").onclick = async ()=>{
+  const username = await requireStaffFn();
+  if(!username) return;
+  if(!confirm("مسح الدردشة بينك وبين المدير لهذا الفرع؟")) return;
+  ref.get("chat").get("private").get(username).put({ messages: {} });
+  setTimeout(()=> location.reload(), 250);
+};
+
+$("#sendChatStaff").onclick = async ()=>{
+
     const username = await requireStaffFn();
     if(!username) return;
     // ensure listener attached
