@@ -172,13 +172,63 @@ $("#branchValue").value = b;
       list.innerHTML = keys.length ? keys.map(u=>`
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
           <div style="font-weight:900">${esc(u)}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12)">
+              <span style="font-weight:900;color:rgba(11,34,48,.85)">من</span>
+              <input data-from="${esc(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
+              <span style="font-weight:900;color:rgba(11,34,48,.85)">إلى</span>
+              <input data-to="${esc(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
+              <button class="btn mini" data-save-range="${esc(u)}">حفظ</button>
+              <button class="btn mini" data-reset-next="${esc(u)}">تصفير التالي</button>
+            </div>
             <button class="warn" data-rename="${esc(u)}">تغيير الاسم</button>
             <button class="danger" data-del="${esc(u)}">حذف</button>
           </div>
-        </div>`).join("") : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد موظفون</div>`;
+        </div>`).join("") : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد موظفون</div>`
+      // تعبئة نطاقات الموظفين (من/إلى)
+      keys.forEach(u=>{
+        const d = obj && obj[u] ? obj[u] : {};
+        const fEl = list.querySelector(`[data-from="${u}"]`);
+        const tEl = list.querySelector(`[data-to="${u}"]`);
+        if(fEl) fEl.value = (d.rangeFrom ?? "");
+        if(tEl) tEl.value = (d.rangeTo ?? "");
+      });
+;
 
-      list.querySelectorAll("[data-del]").forEach(btn=>{
+      list.querySelectorAll("[data-save-range]").forEach(btn=>{
+  btn.onclick = async ()=>{
+    const adminPin = ($("#adminPin").value||"").trim();
+    if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
+    const u = btn.getAttribute("data-save-range");
+    const fEl = list.querySelector(`[data-from="${u}"]`);
+    const tEl = list.querySelector(`[data-to="${u}"]`);
+    const from = parseInt((fEl?.value||"").trim(),10);
+    const to = parseInt((tEl?.value||"").trim(),10);
+    if(!Number.isFinite(from) || !Number.isFinite(to) || from>to){
+      say("أدخل نطاق صحيح (من أقل أو يساوي إلى)");
+      return;
+    }
+    ref.get("staffUsers").get(u).put({ rangeFrom: from, rangeTo: to, nextNumber: from, ts: Date.now() });
+    say("تم حفظ النطاق ✅");
+  };
+});
+
+list.querySelectorAll("[data-reset-next]").forEach(btn=>{
+  btn.onclick = async ()=>{
+    const adminPin = ($("#adminPin").value||"").trim();
+    if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
+    const u = btn.getAttribute("data-reset-next");
+    // أعد التالي إلى "من"
+    ref.get("staffUsers").get(u).once((d)=>{
+      const from = parseInt(d?.rangeFrom,10);
+      if(!Number.isFinite(from)){ say("حدد نطاق (من/إلى) أولاً"); return; }
+      ref.get("staffUsers").get(u).put({ nextNumber: from, ts: Date.now() });
+      say("تم تصفير التالي ✅");
+    });
+  };
+});
+
+list.querySelectorAll("[data-del]").forEach(btn=>{
         btn.onclick = async ()=>{
           const adminPin = ($("#adminPin").value||"").trim();
           if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
@@ -199,7 +249,7 @@ $("#branchValue").value = b;
           if(!nu || nu===oldU) return;
           ref.get("staffUsers").get(oldU).once((data)=>{
             if(!data) return;
-            ref.get("staffUsers").get(nu).put({ pinHash: data.pinHash || "", ts: Date.now() });
+            ref.get("staffUsers").get(nu).put({ pinHash: data.pinHash || "", rangeFrom: data.rangeFrom ?? "", rangeTo: data.rangeTo ?? "", nextNumber: data.nextNumber ?? "", ts: Date.now() });
             ref.get("staffUsers").get(oldU).put(null);
             say("تم تغيير اسم المستخدم ✅");
           });
@@ -350,18 +400,18 @@ $("#branchValue").value = b;
     });
 
     async function requireStaff(){
-      const u = (userSel.value || "").trim();
-      if(!u){ say("اختر اسم المستخدم"); return null; }
-      const pin = ($("#userPin").value || "").trim();
-      if(!pin){ say("أدخل رقم الموظف"); return null; }
-      const data = await new Promise(res=> ref.get("staffUsers").get(u).once(res));
-      if(!data || !data.pinHash){ say("هذا المستخدم غير موجود"); return null; }
-      if(await sha256(pin) !== data.pinHash){ say("رقم الموظف غير صحيح"); return null; }
-      return u;
-    }
+  const u = (userSel.value || "").trim();
+  if(!u){ say("اختر اسم المستخدم"); return null; }
+  const pin = ($("#userPin").value || "").trim();
+  if(!pin){ say("أدخل رقم الموظف"); return null; }
+  const data = await new Promise(res=> ref.get("staffUsers").get(u).once(res));
+  if(!data || !data.pinHash){ say("هذا المستخدم غير موجود"); return null; }
+  if(await sha256(pin) !== data.pinHash){ say("رقم الموظف غير صحيح"); return null; }
+  return { u, data };
+}
 
     // Chat
-    initChatStaff(ref, requireStaff);
+    initChatStaff(ref, async ()=>{ const r = await requireStaff(); return r ? r.u : null; });
 
 
     $("#setBranch").onclick = ()=>{
@@ -375,13 +425,27 @@ $("#branchValue").value = b;
 };
 
     $("#callNext").onclick = async ()=>{
-      const username = await requireStaff();
-      if(!username) return;
+      const auth = await requireStaff();
+      if(!auth) return;
+      const username = auth.u;
+      const staffData = auth.data || {};
 
       const num = ($("#ticketNum").value || "").trim();
       const gender = $("#gender").value;
       if(!num){ say("أدخل رقم المتدرب"); return; }
       if(!gender){ say("اختر (رجال/نساء)"); return; }
+
+      // تقييد النطاق (من/إلى) إن وُجد
+      const n = parseInt(num, 10);
+      const rf = staffData?.rangeFrom;
+      const rt = staffData?.rangeTo;
+      if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
+        const from = parseInt(rf,10), to = parseInt(rt,10);
+        if(!Number.isFinite(n) || n < from || n > to){
+          say(`هذا الموظف مسموح له بالأرقام من ${from} إلى ${to} فقط`);
+          return;
+        }
+      }
 
       const settings = await new Promise(res=> ref.get("settings").once(res));
   const limit = Math.max(3, Math.min(60, parseInt(settings?.historyLimit || 15,10)));
@@ -412,8 +476,47 @@ $("#branchValue").value = b;
 
   // 2) تحديث الرقم الحالي
   ref.get("current").put({ number:num, gender, staff: username, ts: now });
-  say("تم النداء ✅");
+  // تحديث "التالي" للموظف إذا كان ضمن نطاقه
+      const rf2 = staffData?.rangeFrom;
+      const rt2 = staffData?.rangeTo;
+      if(rf2 !== undefined && rf2 !== null && rt2 !== undefined && rt2 !== null && rf2 !== "" && rt2 !== ""){
+        const from2 = parseInt(rf2,10), to2 = parseInt(rt2,10);
+        const nextNow = Number.isFinite(parseInt(staffData?.nextNumber,10)) ? parseInt(staffData.nextNumber,10) : from2;
+        if(Number.isFinite(n) && n >= from2 && n <= to2){
+          // إذا الموظف نادى الرقم المتوقع، قدّم التالي
+          if(n === nextNow){
+            const nn = Math.min(to2+1, nextNow+1);
+            ref.get("staffUsers").get(username).put({ nextNumber: nn, ts: Date.now() });
+          }
+        }
+      }
+
+      say("تم النداء ✅");
 };
+
+$("#requestNext").onclick = async ()=>{
+  const auth = await requireStaff();
+  if(!auth) return;
+  const username = auth.u;
+  const staffData = auth.data || {};
+  const rf = staffData?.rangeFrom;
+  const rt = staffData?.rangeTo;
+  if(rf === undefined || rf === null || rt === undefined || rt === null || rf === "" || rt === ""){
+    say("لا يوجد نطاق مخصص لهذا الموظف. حدده من لوحة المدير.");
+    return;
+  }
+  const from = parseInt(rf,10), to = parseInt(rt,10);
+  let nextNow = Number.isFinite(parseInt(staffData?.nextNumber,10)) ? parseInt(staffData.nextNumber,10) : from;
+  if(nextNow < from) nextNow = from;
+  if(nextNow > to){
+    say("انتهى نطاقك المحدد ✅");
+    return;
+  }
+  $("#ticketNum").value = String(nextNow);
+  // يحتاج تحديد الجنس يدويًا (رجال/نساء) ثم نداء
+  say(`تم اختيار التالي: ${nextNow} (اختر رجال/نساء ثم اضغط نداء)`);
+};
+
   }
 
   // ========= Display =========
