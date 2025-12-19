@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>لوحة الموظف - نظام الدور</title>
-  <link rel="stylesheet" href="./styles.css?v=22"/>
+  <link rel="stylesheet" href="./styles.css?v=21"/>
 </head>
 <body>
   <div class="container">
@@ -55,9 +55,6 @@
         <div class="hd">النداء</div>
         <div class="bd">
           <div class="pill" id="msg">جاهز</div>
-          <label style="margin-top:10px">نطاقي (اختياري)</label>
-          <input id="staffRangeOverride" inputmode="numeric" placeholder="مثال: 10-30"/>
-          <small class="help">إذا تركته فاضي، يتم استخدام نطاق المدير.</small>
           <label style="margin-top:10px">رقم المتدرب</label>
           <input id="ticketNum" inputmode="numeric" placeholder="مثال: 9"/>
           <label style="margin-top:10px">النوع</label>
@@ -103,7 +100,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=22"></script>
+  <script src="./app.js?v=21"></script>
   <script>window.TQ.initStaff();</script>
 
 <script>

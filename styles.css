@@ -85,9 +85,3 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 
 .bigNumberCard.pass{border-color: rgba(33,150,243,.95) !important;}
 .bigNumberCard.fail{border-color: rgba(220,38,38,.95) !important;}
-
-.adminPrivate.isLocked{display:none;}
-
-#staffList{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
-#staffList .staffRow{break-inside:avoid}
-@media (max-width: 900px){#staffList{grid-template-columns:1fr}}

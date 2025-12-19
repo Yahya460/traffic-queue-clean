@@ -73,11 +73,7 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   }
 
   function ensure(ref){
-    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults());
-// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
-ref.get("historyMen").put([]);
-ref.get("historyWomen").put([]);
-ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" }); });
+    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults()); });
   }
 
   function setConn(el, ok){
@@ -174,7 +170,7 @@ $("#branchValue").value = b;
       const list = $("#staffList");
       const keys = obj ? Object.keys(obj).filter(k=>k!=="_" && obj[k]).sort() : [];
       list.innerHTML = keys.length ? keys.map(u=>`
-        <div class="staffRow" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
           <div style="font-weight:900">${esc(u)}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <div style="display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12)">
@@ -286,24 +282,8 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       const first = await setAdminIfEmpty(pin);
       if(first.ok && first.first){ say("تم حفظ رقم المدير لأول مرة ✅"); return; }
       const chk = await requireAdmin(pin);
-      if(chk.ok){
-        const priv = document.querySelector("#adminPrivate");
-        if(priv) priv.classList.remove("isLocked");
-      }
-      say(chk.ok ? "رقم المدير صحيح ✅ (تم فتح الخصوصية)" : "رقم المدير غير صحيح");
+      say(chk.ok ? "رقم المدير صحيح ✅ (محفوظ)" : "رقم المدير غير صحيح");
     };
-
-    const unlockPrivate = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(!pin) return;
-      const chk = await requireAdmin(pin);
-      if(chk.ok){
-        const priv = document.querySelector("#adminPrivate");
-        if(priv) priv.classList.remove("isLocked");
-      }
-    };
-    $("#adminPin").addEventListener("change", unlockPrivate);
-    $("#adminPin").addEventListener("keyup", (e)=>{ if(e.key==="Enter") unlockPrivate(); });
 
     $("#resetAdminPin").onclick = async ()=>{
   const code = prompt("أدخل كود إعادة التعيين:");
@@ -387,10 +367,6 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       if(!confirm("أكيد تريد تصفير النظام بالكامل؟")) return;
       ref.put(defaults());
-// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
-ref.get("historyMen").put([]);
-ref.get("historyWomen").put([]);
-ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
       say("تم تصفير النظام ✅");
     };
   }
