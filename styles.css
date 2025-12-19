@@ -121,3 +121,14 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
     grid-template-columns: 1fr;
   }
 }
+/* جعل عمود الموظفين عمودين */
+#staffList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* منع كرت الموظف من الانكسار بين العمودين */
+#staffList > * {
+  break-inside: avoid;
+}
