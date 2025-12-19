@@ -80,10 +80,17 @@
             <button class="primary" id="saveAdminNote">حفظ الملاحظة</button>
             <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
             <button class="danger" id="resetAll">تصفير النظام بالكامل</button>
-<button id="resetDisplayNow" class="danger" type="button">
-  تصفير شاشة العرض (هذا الفرع)
-</button>
           </div>
+
+            <div class="splitLine"></div>
+            <div class="hint" style="margin-top:10px;color:#6b7280;font-size:13px">
+              تصفير النداءات يتم على <b>الفرع الحالي</b> فقط (حسب اختيار الفرع بالأعلى).
+            </div>
+            <div class="btns" style="margin-top:10px">
+              <button class="warn" id="resetCallsMen">تصفير نداءات الرجال</button>
+              <button class="warn" id="resetCallsWomen">تصفير نداءات النساء</button>
+              <button class="danger" id="resetCallsBranch">تصفير النداءات + الرقم الحالي</button>
+            </div>
         </div>
       </div>
 
@@ -111,8 +118,6 @@
           </div>
           <div class="centerImage" id="imgHolder" style="margin-top:10px"></div>
         </div>
-      </div>
-
       <div class="cardRow" style="margin-top:14px">
   <div class="card" style="grid-column:1/-1">
     <div class="hd">دردشة المدير مع الموظفين (للفرع الحالي)</div>
@@ -160,4 +165,6 @@
 </script>
 
 </body>
-</html>
+</html><button id="btnResetDisplay" class="btn-danger">
+  تصفير شاشة العرض (هذا الفرع)
+</button>

@@ -73,8 +73,12 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   }
 
   function ensure(ref){
-    // Initialize data only if it doesn't exist yet (DO NOT reset data here)
-    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults()); });
+    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults());
+// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
+ref.get("historyMen").put([]);
+ref.get("historyWomen").put([]);
+ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
+ref.get("results").put({}); });
   }
 
   function setConn(el, ok){
@@ -378,6 +382,55 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       say("تم مسح سجل الأرقام ✅");
     };
 
+
+    // تصفير النداءات (رجال/نساء) + خيار تصفير الرقم الحالي — للفرع الحالي فقط
+    const clearBucket = (bucket)=> new Promise((resolve)=>{
+      ref.get("history").get(bucket).once((obj)=>{
+        try{
+          if(obj){
+            Object.keys(obj).filter(k=>k!=="_").forEach(k=>{
+              ref.get("history").get(bucket).get(k).put(null);
+            });
+          }
+        }finally{
+          resolve(true);
+        }
+      });
+    });
+
+    const resetCurrent = ()=>{
+      ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
+    };
+
+    $("#resetCallsMen").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      if(!confirm("أكيد تريد تصفير نداءات الرجال لهذا الفرع؟")) return;
+      await clearBucket("men");
+      say("تم تصفير نداءات الرجال ✅");
+    };
+
+    $("#resetCallsWomen").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      if(!confirm("أكيد تريد تصفير نداءات النساء لهذا الفرع؟")) return;
+      await clearBucket("women");
+      say("تم تصفير نداءات النساء ✅");
+    };
+
+    $("#resetCallsBranch").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      if(!confirm("أكيد تريد تصفير (رجال + نساء) + الرقم الحالي لهذا الفرع؟")) return;
+      await clearBucket("men");
+      await clearBucket("women");
+      resetCurrent();
+      say("تم تصفير النداءات والرقم الحالي ✅");
+    };
+
     $("#resetAll").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
@@ -390,38 +443,7 @@ ref.get("historyWomen").put([]);
 ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
 ref.get("results").put({});
       say("تم تصفير النظام ✅");
-    }
-    // ✅ تصفير شاشة العرض فقط (الفرع الحالي) — صلاحية المدير فقط
-    $("#resetDisplayNow").onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-      if(!confirm(`أكيد تريد تصفير شاشة العرض لهذا الفرع (${b}) ؟\n(الرقم الحالي + رجال + نساء)`)) return;
-
-      // تصفير الرقم الحالي
-      ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
-
-      // تصفير سجل تم النداء (رجال/نساء) بطريقة حذف العناصر (Gun لا يمسح بالمِرج وحده)
-      const clearBucket = (bucket)=> new Promise(res=>{
-        ref.get("history").get(bucket).once((obj)=>{
-          const keys = obj ? Object.keys(obj).filter(k=>k!=="_" ) : [];
-          if(!keys.length) return res();
-          keys.forEach(k=> ref.get("history").get(bucket).get(k).put(null));
-          // انتظر لحظة بسيطة لانتشار الحذف
-          setTimeout(res, 200);
-        });
-      });
-      await clearBucket("men");
-      await clearBucket("women");
-      // تصفير نتائج ناجح/راسب
-      ref.get("results").put({});
-
-      // دفعة تحديث لضمان انعكاس فوري
-      ref.get("resetAt").put(Date.now());
-
-      say("تم تصفير شاشة العرض ✅");
     };
-;
   }
 
   // ========= Staff =========
