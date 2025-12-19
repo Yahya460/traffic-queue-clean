@@ -157,3 +157,27 @@ button + button {
   width: auto;
   max-width: 100%;
 }
+/* ===== حل نهائي لقص زر حفظ في كروت الموظفين ===== */
+
+/* كرت الموظف */
+.card,
+.employee-card,
+.staff-card {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* العمود الذي يحتوي كروت الموظفين */
+.card > div,
+.employee-card > div,
+.staff-card > div {
+  overflow: visible !important;
+}
+
+/* أزرار داخل كرت الموظف */
+.card button,
+.employee-card button,
+.staff-card button {
+  white-space: nowrap;
+  margin-top: 6px;
+}
