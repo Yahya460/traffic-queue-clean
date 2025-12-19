@@ -73,7 +73,12 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   }
 
   function ensure(ref){
-    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults()); });
+    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults());
+// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
+ref.get("historyMen").put([]);
+ref.get("historyWomen").put([]);
+ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
+ref.get("results").put({}); });
   }
 
   function setConn(el, ok){
@@ -120,7 +125,7 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
     
 
     wireBranchSelect();
-$("#branchValue").value = b;
+const bs=$("#branchSelect"); if(bs) bs.value=b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
@@ -170,7 +175,7 @@ $("#branchValue").value = b;
       const list = $("#staffList");
       const keys = obj ? Object.keys(obj).filter(k=>k!=="_" && obj[k]).sort() : [];
       list.innerHTML = keys.length ? keys.map(u=>`
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
+        <div class="staffRow" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
           <div style="font-weight:900">${esc(u)}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <div style="display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12)">
@@ -282,8 +287,24 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       const first = await setAdminIfEmpty(pin);
       if(first.ok && first.first){ say("تم حفظ رقم المدير لأول مرة ✅"); return; }
       const chk = await requireAdmin(pin);
-      say(chk.ok ? "رقم المدير صحيح ✅ (محفوظ)" : "رقم المدير غير صحيح");
+      if(chk.ok){
+        const priv = document.querySelector("#adminPrivate");
+        if(priv) priv.classList.remove("isLocked");
+      }
+      say(chk.ok ? "رقم المدير صحيح ✅ (تم فتح الخصوصية)" : "رقم المدير غير صحيح");
     };
+
+    const unlockPrivate = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(!pin) return;
+      const chk = await requireAdmin(pin);
+      if(chk.ok){
+        const priv = document.querySelector("#adminPrivate");
+        if(priv) priv.classList.remove("isLocked");
+      }
+    };
+    $("#adminPin").addEventListener("change", unlockPrivate);
+    $("#adminPin").addEventListener("keyup", (e)=>{ if(e.key==="Enter") unlockPrivate(); });
 
     $("#resetAdminPin").onclick = async ()=>{
   const code = prompt("أدخل كود إعادة التعيين:");
@@ -367,6 +388,11 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       if(!confirm("أكيد تريد تصفير النظام بالكامل؟")) return;
       ref.put(defaults());
+// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
+ref.get("historyMen").put([]);
+ref.get("historyWomen").put([]);
+ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
+ref.get("results").put({});
       say("تم تصفير النظام ✅");
     };
   }
@@ -391,7 +417,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
     
 
     wireBranchSelect();
-$("#branchValue").value = b;
+const bs=$("#branchSelect"); if(bs) bs.value=b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
@@ -406,7 +432,34 @@ $("#branchValue").value = b;
       if(keys.includes(cur)) userSel.value = cur;
     });
 
-    ref.get("current").on((c)=>{ if(c) $("#currentNum").textContent = c.number ?? "--"; });
+    ref.get("current").on((c)=>{
+      if(c) $("#currentNum").textContent = c.number ?? "--";
+      // Auto-fill "رقم التلميذ للنتيجة" بآخر رقم تم نداؤه (مع إمكانية تعديله)
+      const rn = $("#resultNum");
+      if(rn && c && (c.number!==undefined && c.number!==null)){
+        const newVal = String(c.number);
+        const autoFlag = rn.dataset.auto === "1";
+        if(!rn.value || autoFlag){
+          rn.value = newVal;
+          rn.dataset.auto = "1";
+          rn.dataset.lastAuto = newVal;
+        }
+      }
+    });
+    // إذا المستخدم عدّل الحقل يدويًا، لا نرجعه تلقائيًا إلا إذا فرّغه
+    const rn = $("#resultNum");
+    if(rn){
+      rn.addEventListener("input", ()=>{
+        if(!rn.value){
+          rn.dataset.auto = "1";
+          rn.dataset.lastAuto = "";
+        } else {
+          // إذا غيّر القيمة عن آخر قيمة تعبّأت تلقائيًا اعتبره تعديل يدوي
+          const lastAuto = rn.dataset.lastAuto || "";
+          rn.dataset.auto = (rn.value === lastAuto) ? "1" : "0";
+        }
+      });
+    }
 
     let lastCallTs = 0;
     ref.get("current").on((c)=>{
@@ -573,7 +626,21 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       $("#curNumber").textContent = c.number ?? "--";
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
       const card = document.querySelector(".bigNumberCard");
-      if(card){ card.classList.remove("pass","fail"); if(c.result==="pass") card.classList.add("pass"); else if(c.result==="fail") card.classList.add("fail"); }
+      if(card){
+        card.classList.remove("pass","fail");
+        if(c.result==="pass") card.classList.add("pass");
+        else if(c.result==="fail") card.classList.add("fail");
+      }
+      const numKey = String(c.number||"").trim();
+      if(numKey){
+        ref.get("results").get(numKey).once((r)=>{
+          const card2 = document.querySelector(".bigNumberCard");
+          if(!card2) return;
+          if(card2.classList.contains("pass") || card2.classList.contains("fail")) return;
+          if(r?.result==="pass") card2.classList.add("pass");
+          else if(r?.result==="fail") card2.classList.add("fail");
+        });
+      }
       $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
       if(c.ts && c.ts !== lastTs){
         lastTs = c.ts;
