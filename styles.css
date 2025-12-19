@@ -124,3 +124,36 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
   flex-wrap: wrap;   /* ← هذا السطر المهم */
   gap: 6px;
 }
+/* ===== إصلاح تداخل أزرار الموظفين (حل نهائي) ===== */
+
+/* أي كرت فيه أزرار */
+button {
+  white-space: nowrap;
+}
+
+/* حاوية أزرار الموظف */
+button + button {
+  margin-inline-start: 6px;
+}
+
+/* خلي كل أزرار الموظف تنزل تحت بعض لو ضاق المكان */
+.admin-page button,
+.admin-page .card button,
+.admin-page .employee button {
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+/* كرت الموظف نفسه */
+.admin-page .employee,
+.admin-page .staff-card,
+.admin-page .employee-card {
+  min-width: 260px;      /* يمنع الكرت من الانضغاط */
+}
+
+/* خلي الأزرار تاخذ سطر كامل إذا لزم */
+.admin-page .employee button {
+  width: auto;
+  max-width: 100%;
+}
