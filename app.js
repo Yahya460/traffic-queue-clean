@@ -186,12 +186,15 @@ $("#branchValue").value = b;
           </div>
         </div>`).join("") : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد موظفون</div>`
       // تعبئة نطاقات الموظفين (من/إلى)
-      keys.forEach(u=>{
-        const d = obj && obj[u] ? obj[u] : {};
-        const fEl = list.querySelector(`[data-from="${u}"]`);
-        const tEl = list.querySelector(`[data-to="${u}"]`);
-        if(fEl) fEl.value = (d.rangeFrom ?? "");
-        if(tEl) tEl.value = (d.rangeTo ?? "");
+      list.querySelectorAll('[data-from]').forEach(inp=>{
+        const u = inp.getAttribute('data-from');
+        const d = (obj && obj[u]) ? obj[u] : {};
+        inp.value = (d.rangeFrom ?? "");
+      });
+      list.querySelectorAll('[data-to]').forEach(inp=>{
+        const u = inp.getAttribute('data-to');
+        const d = (obj && obj[u]) ? obj[u] : {};
+        inp.value = (d.rangeTo ?? "");
       });
 ;
 
@@ -497,10 +500,10 @@ $("#branchValue").value = b;
 $("#requestNext").onclick = async ()=>{
   const auth = await requireStaff();
   if(!auth) return;
-  const username = auth.u;
   const staffData = auth.data || {};
   const rf = staffData?.rangeFrom;
   const rt = staffData?.rangeTo;
+
   if(rf === undefined || rf === null || rt === undefined || rt === null || rf === "" || rt === ""){
     say("لا يوجد نطاق مخصص لهذا الموظف. حدده من لوحة المدير.");
     return;
@@ -512,9 +515,18 @@ $("#requestNext").onclick = async ()=>{
     say("انتهى نطاقك المحدد ✅");
     return;
   }
+
   $("#ticketNum").value = String(nextNow);
-  // يحتاج تحديد الجنس يدويًا (رجال/نساء) ثم نداء
-  say(`تم اختيار التالي: ${nextNow} (اختر رجال/نساء ثم اضغط نداء)`);
+
+  // لازم اختيار الجنس قبل النداء
+  const gender = $("#gender").value;
+  if(!gender){
+    say(`تم اختيار التالي: ${nextNow} ✅ اختر (رجال/نساء) ثم اضغط طلب التالي مرة ثانية أو اضغط نداء`);
+    return;
+  }
+
+  // نداء تلقائي
+  $("#callNext").click();
 };
 
   }
