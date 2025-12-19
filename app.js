@@ -175,24 +175,26 @@ $("#branchValue").value = b;
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <div style="display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12)">
               <span style="font-weight:900;color:rgba(11,34,48,.85)">من</span>
-              <input data-from="${esc(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
+              <input data-from="${encodeURIComponent(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
               <span style="font-weight:900;color:rgba(11,34,48,.85)">إلى</span>
-              <input data-to="${esc(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
-              <button class="btn mini" data-save-range="${esc(u)}">حفظ</button>
-              <button class="btn mini" data-reset-next="${esc(u)}">تصفير التالي</button>
+              <input data-to="${encodeURIComponent(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
+              <button class="btn mini" data-save-range="${encodeURIComponent(u)}">حفظ</button>
+              <button class="btn mini" data-reset-next="${encodeURIComponent(u)}">تصفير التالي</button>
             </div>
-            <button class="warn" data-rename="${esc(u)}">تغيير الاسم</button>
-            <button class="danger" data-del="${esc(u)}">حذف</button>
+            <button class="warn" data-rename="${encodeURIComponent(u)}">تغيير الاسم</button>
+            <button class="danger" data-del="${encodeURIComponent(u)}">حذف</button>
           </div>
         </div>`).join("") : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد موظفون</div>`
       // تعبئة نطاقات الموظفين (من/إلى)
       list.querySelectorAll('[data-from]').forEach(inp=>{
-        const u = inp.getAttribute('data-from');
+        const uEnc = inp.getAttribute('data-from');
+        const u = decodeURIComponent(uEnc);
         const d = (obj && obj[u]) ? obj[u] : {};
         inp.value = (d.rangeFrom ?? "");
       });
       list.querySelectorAll('[data-to]').forEach(inp=>{
-        const u = inp.getAttribute('data-to');
+        const uEnc = inp.getAttribute('data-to');
+        const u = decodeURIComponent(uEnc);
         const d = (obj && obj[u]) ? obj[u] : {};
         inp.value = (d.rangeTo ?? "");
       });
@@ -202,9 +204,10 @@ $("#branchValue").value = b;
   btn.onclick = async ()=>{
     const adminPin = ($("#adminPin").value||"").trim();
     if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
-    const u = btn.getAttribute("data-save-range");
-    const fEl = list.querySelector(`[data-from="${u}"]`);
-    const tEl = list.querySelector(`[data-to="${u}"]`);
+    const uEnc = btn.getAttribute("data-save-range");
+          const u = decodeURIComponent(uEnc);
+    const fEl = list.querySelector(`[data-from="${uEnc}"]`);
+    const tEl = list.querySelector(`[data-to="${uEnc}"]`);
     const from = parseInt((fEl?.value||"").trim(),10);
     const to = parseInt((tEl?.value||"").trim(),10);
     if(!Number.isFinite(from) || !Number.isFinite(to) || from>to){
@@ -220,7 +223,8 @@ list.querySelectorAll("[data-reset-next]").forEach(btn=>{
   btn.onclick = async ()=>{
     const adminPin = ($("#adminPin").value||"").trim();
     if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
-    const u = btn.getAttribute("data-reset-next");
+    const uEnc = btn.getAttribute("data-reset-next");
+          const u = decodeURIComponent(uEnc);
     // أعد التالي إلى "من"
     ref.get("staffUsers").get(u).once((d)=>{
       const from = parseInt(d?.rangeFrom,10);
@@ -235,7 +239,8 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
         btn.onclick = async ()=>{
           const adminPin = ($("#adminPin").value||"").trim();
           if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
-          const u = btn.getAttribute("data-del");
+          const uEnc = btn.getAttribute("data-del");
+        const u = decodeURIComponent(uEnc);
           if(!confirm(`حذف الموظف: ${u} ؟`)) return;
           ref.get("staffUsers").get(u).put(null);
           say("تم حذف الموظف ✅");
@@ -368,6 +373,16 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
 
   // ========= Staff =========
   async function initStaff(){
+    function parseOverrideRange(){
+      const raw = ($('#staffRangeOverride')?.value || '').trim();
+      if(!raw) return null;
+      const m = raw.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+      if(!m) return null;
+      const from = parseInt(m[1],10), to = parseInt(m[2],10);
+      if(!Number.isFinite(from) || !Number.isFinite(to) || from>to) return null;
+      return {from,to};
+    }
+
     const b = branch();
     const gun = makeGun();
     const ref = refFor(gun, b);
@@ -439,9 +454,10 @@ $("#branchValue").value = b;
       if(!gender){ say("اختر (رجال/نساء)"); return; }
 
       // تقييد النطاق (من/إلى) إن وُجد
+      const ov = parseOverrideRange();
       const n = parseInt(num, 10);
-      const rf = staffData?.rangeFrom;
-      const rt = staffData?.rangeTo;
+      const rf = ov ? ov.from : staffData?.rangeFrom;
+      const rt = ov ? ov.to : staffData?.rangeTo;
       if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
         const from = parseInt(rf,10), to = parseInt(rt,10);
         if(!Number.isFinite(n) || n < from || n > to){
@@ -478,10 +494,11 @@ $("#branchValue").value = b;
   }
 
   // 2) تحديث الرقم الحالي
-  ref.get("current").put({ number:num, gender, staff: username, ts: now });
+  ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
   // تحديث "التالي" للموظف إذا كان ضمن نطاقه
-      const rf2 = staffData?.rangeFrom;
-      const rt2 = staffData?.rangeTo;
+      const ov2 = parseOverrideRange();
+      const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
+      const rt2 = ov2 ? ov2.to : staffData?.rangeTo;
       if(rf2 !== undefined && rf2 !== null && rt2 !== undefined && rt2 !== null && rf2 !== "" && rt2 !== ""){
         const from2 = parseInt(rf2,10), to2 = parseInt(rt2,10);
         const nextNow = Number.isFinite(parseInt(staffData?.nextNumber,10)) ? parseInt(staffData.nextNumber,10) : from2;
@@ -501,8 +518,9 @@ $("#requestNext").onclick = async ()=>{
   const auth = await requireStaff();
   if(!auth) return;
   const staffData = auth.data || {};
-  const rf = staffData?.rangeFrom;
-  const rt = staffData?.rangeTo;
+  const ov = parseOverrideRange();
+  const rf = ov ? ov.from : staffData?.rangeFrom;
+  const rt = ov ? ov.to : staffData?.rangeTo;
 
   if(rf === undefined || rf === null || rt === undefined || rt === null || rf === "" || rt === ""){
     say("لا يوجد نطاق مخصص لهذا الموظف. حدده من لوحة المدير.");
@@ -554,6 +572,8 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       if(!c) return;
       $("#curNumber").textContent = c.number ?? "--";
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
+      const card = document.querySelector(".bigNumberCard");
+      if(card){ card.classList.remove("pass","fail"); if(c.result==="pass") card.classList.add("pass"); else if(c.result==="fail") card.classList.add("fail"); }
       $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
       if(c.ts && c.ts !== lastTs){
         lastTs = c.ts;

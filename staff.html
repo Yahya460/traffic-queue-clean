@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>لوحة الموظف - نظام الدور</title>
-  <link rel="stylesheet" href="./styles.css?v=18"/>
+  <link rel="stylesheet" href="./styles.css?v=21"/>
 </head>
 <body>
   <div class="container">
@@ -64,7 +64,9 @@
             <option value="women">نساء</option>
           </select>
           <div class="btns"><button class="primary" id="callNext">نداء</button>
-          <button class="btn" id="requestNext">طلب التالي</button></div>
+          <button class="btn" id="requestNext">طلب التالي</button>
+          <button class="btn success" id="passBtn">ناجح</button>
+          <button class="btn danger" id="failBtn">راسب</button></div>
           <small class="help" style="margin-top:10px">الملاحظة من صلاحيات المدير فقط ✅</small>
         </div>
       </div>
@@ -98,7 +100,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=18"></script>
+  <script src="./app.js?v=21"></script>
   <script>window.TQ.initStaff();</script>
 
 <script>

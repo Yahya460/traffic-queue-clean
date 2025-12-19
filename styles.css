@@ -80,3 +80,8 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 
 .tileNum{display:block;line-height:1;font-size:18px;font-weight:950}
 .tileTime{display:block;margin-top:4px;line-height:1;font-size:11px;font-weight:800;opacity:.75}
+
+.btn.success{background:rgba(33,150,243,.18);border:1px solid rgba(33,150,243,.45)}
+
+.bigNumberCard.pass{border-color: rgba(33,150,243,.95) !important;}
+.bigNumberCard.fail{border-color: rgba(220,38,38,.95) !important;}
