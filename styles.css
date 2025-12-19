@@ -1,183 +1,217 @@
-:root{
-  --bg:#00b7d6; --stroke:rgba(0,0,0,.12); --text:#0b2230; --muted:rgba(11,34,48,.72);
-  --primary:#0b73c9; --primary2:#0a5aa0; --danger:#c62828; --warn:#ffb300;
-  --radius:18px; --shadow:0 10px 26px rgba(0,0,0,.18); --red:#d32f2f; --yellow:#ffeb3b;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Kufi Arabic","Noto Sans Arabic",Arial,sans-serif;background:var(--bg);color:var(--text)}
-a{color:inherit;text-decoration:none}
-.container{max-width:1280px;margin:0 auto;padding:16px}
-.top{background:rgba(255,255,255,.45);border:1px solid var(--stroke);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;text-align:center}
-.top h1{margin:0;font-size:22px;font-weight:900}
-.top p{margin:6px 0 0;color:var(--muted);font-size:14px;font-weight:650}
-.subbar{margin-top:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.pill{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.40);border:1px solid var(--stroke);box-shadow:var(--shadow);font-weight:750;color:var(--muted)}
-.pill b{color:var(--text)}
-.grid3{margin-top:14px;display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:14px}
-@media (max-width:980px){.grid3{grid-template-columns:1fr}}
-.panel{background:rgba(255,255,255,.35);border:1px solid var(--stroke);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;min-height:520px}
-.panel .hd{padding:12px 14px;text-align:center;font-weight:900;font-size:18px}
-.panel .bd{padding:12px 14px}
-.box{background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.10);border-radius:16px;box-shadow:0 8px 18px rgba(0,0,0,.10);padding:12px}
-.numGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.tile{background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.14);border-radius:12px;padding:10px 6px;text-align:center;font-weight:900;font-size:18px}
-.centerLogo{display:flex;justify-content:center;align-items:center;margin:6px 0 8px}
-.centerLogo img{max-width:120px;max-height:120px;object-fit:contain;background:rgba(255,255,255,.75);border-radius:12px;padding:6px;border:1px solid rgba(0,0,0,.12)}
-.centerTitle{text-align:center;font-weight:900;font-size:22px;margin:6px 0 8px}
-.bigNumberCard{background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.16);border-radius:16px;padding:18px 12px;text-align:center}
-.bigNumber{font-size:clamp(64px,9vw,130px);font-weight:950;line-height:1;margin:0}
-.genderLabel{margin-top:10px;font-weight:900;color:rgba(11,34,48,.85)}
-.lastCall{margin-top:8px;font-weight:800;color:rgba(11,34,48,.70);font-size:14px}
-.noteBar{margin-top:12px;background:var(--yellow);border:1px solid rgba(0,0,0,.14);border-radius:14px;padding:10px 12px;overflow:hidden}
-.marquee{white-space:nowrap;overflow:hidden;position:relative;height:26px}
-.marquee span{position:absolute;left:0;transform:translateX(-100%);display:inline-block;padding-left:100%;animation:marquee 14s linear infinite;font-weight:900;color:#b71c1c}
-@keyframes marquee{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-.centerImage{margin-top:12px;background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.14);border-radius:14px;padding:10px}
-.centerImage img{width:100%;max-height:34vh;object-fit:contain;display:block}
-.footerTicker{margin-top:14px;background:var(--yellow);border:2px solid rgba(0,0,0,.22);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);font-weight:900;color:#2b1b00;text-align:center}
-.rights{margin-top:8px;text-align:center;font-size:12.5px;font-weight:750;color:rgba(11,34,48,.70)}
-.cardRow{margin-top:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-@media (max-width:980px){.cardRow{grid-template-columns:1fr}}
-.card{background:rgba(255,255,255,.45);border:1px solid rgba(0,0,0,.12);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.card .hd{padding:12px 14px;font-weight:950;background:rgba(255,255,255,.55);border-bottom:1px solid rgba(0,0,0,.10)}
-.card .bd{padding:12px 14px}
-label{display:block;margin:0 0 6px;font-weight:850;color:rgba(11,34,48,.85)}
-input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid rgba(0,0,0,.18);background:rgba(255,255,255,.80);color:var(--text);outline:none}
-textarea{min-height:88px;resize:vertical}
-.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-button{border:0;padding:11px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.12)}
-button.primary{background:var(--primary);color:#fff}
-button.primary:hover{background:var(--primary2)}
-button.warn{background:var(--warn);color:#2b1b00}
-button.danger{background:var(--danger);color:#fff}
-button.gray{background:#607d8b;color:#fff}
-small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700;line-height:1.5}
-/* شاشة العرض: حدود حمراء لكل القوالب */
-.display-page .top,
-.display-page .panel,
-.display-page .box,
-.display-page .bigNumberCard,
-.display-page .noteBar,
-.display-page .centerImage,
-.display-page .footerTicker{border:2px solid var(--red)!important}
-
-
-/* شاشة العرض: المستطيل العلوي أصفر */
-.display-page .top{background:var(--yellow) !important; border:2px solid var(--red) !important;}
-
-.chatList{max-height:280px;overflow:auto;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:10px}
-.chat{padding:10px;border-radius:14px;margin-bottom:8px;border:1px solid rgba(0,0,0,.10);background:rgba(255,255,255,.70)}
-.chat.admin{background:rgba(11,115,201,.12)}
-.chat.staff{background:rgba(211,47,47,.10)}
-.chatMeta{font-weight:900;color:rgba(11,34,48,.75);font-size:12px;margin-bottom:4px}
-.chatText{font-weight:850}
-
-.display-page .noteBar{background:var(--yellow) !important; border:2px solid var(--red) !important;}
-
-.display-page .top{position:relative;}
-.display-page .topLogo{position:absolute;top:10px;right:14px;width:64px;height:64px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.7);padding:6px;border:1px solid rgba(0,0,0,.12)}
-
-.tileNum{display:block;line-height:1;font-size:18px;font-weight:950}
-.tileTime{display:block;margin-top:4px;line-height:1;font-size:11px;font-weight:800;opacity:.75}
-
-.btn.success{background:rgba(33,150,243,.18);border:1px solid rgba(33,150,243,.45)}
-
-.bigNumberCard.pass{border-color: rgba(33,150,243,.95) !important;}
-.bigNumberCard.fail{border-color: rgba(220,38,38,.95) !important;}
-/* ===== Admin: Employees list layout fix ===== */
-
-/* صندوق إدارة الموظفين نفسه */
-.admin-staff-box {
-  max-height: 72vh;          /* ارتفاع مناسب */
-  overflow: auto;            /* سكرول داخل الصندوق */
-  padding-right: 8px;        /* مساحة للسكرول */
+/* ================== إعدادات عامة ================== */
+:root {
+  --bg: #00bcd4;
+  --card: #dff7fb;
+  --card-2: #cceff5;
+  --border: #1aa6b7;
+  --yellow: #ffe680;
+  --text: #003b44;
+  --danger: #e53935;
+  --success: #2e7d32;
+  --primary: #1976d2;
 }
 
-/* القائمة تتحول لعمودين */
-.admin-staff-list {
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Kufi Arabic",
+    "Noto Sans Arabic", Arial, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ================== العناوين ================== */
+h1,
+h2,
+h3 {
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+/* ================== الحاويات الرئيسية ================== */
+.container {
+  width: 100%;
+  padding: 12px;
+}
+
+.columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;  /* عمودين */
-  gap: 10px;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 12px;
 }
 
-/* كرت الموظف */
-.admin-staff-card {
-  display: grid;
-  grid-template-columns: 1fr;      /* المحتوى عمودي */
-  gap: 8px;
+/* ================== الكروت ================== */
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 12px;
+  border: 2px solid var(--border);
 }
 
-/* منطقة الأزرار داخل كرت الموظف (منع التداخل) */
-.admin-staff-actions {
-  display: flex;
-  flex-wrap: wrap;                 /* أهم سطر لمنع التداخل */
-  gap: 6px;
+/* ================== شريط العنوان ================== */
+.header {
+  background: var(--card-2);
+  border-radius: 16px;
+  padding: 14px;
+  border: 2px solid var(--border);
+  margin-bottom: 12px;
 }
 
-.admin-staff-actions button {
-  min-width: 86px;
-}
-/* منع تداخل أزرار الموظفين في لوحة المدير */
-.admin-staff-actions {
-  display: flex;
-  flex-wrap: wrap;   /* ← هذا السطر المهم */
-  gap: 6px;
-}
-/* ===== إصلاح تداخل أزرار الموظفين (حل نهائي) ===== */
-
-/* أي كرت فيه أزرار */
-button {
-  white-space: nowrap;
-}
-
-/* حاوية أزرار الموظف */
-button + button {
-  margin-inline-start: 6px;
-}
-
-/* خلي كل أزرار الموظف تنزل تحت بعض لو ضاق المكان */
-.admin-page button,
-.admin-page .card button,
-.admin-page .employee button {
-  display: inline-flex;
-  flex-wrap: wrap;
+/* ================== الحقول ================== */
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  outline: none;
   margin-bottom: 6px;
 }
 
-/* كرت الموظف نفسه */
-.admin-page .employee,
-.admin-page .staff-card,
-.admin-page .employee-card {
-  min-width: 260px;      /* يمنع الكرت من الانضغاط */
+textarea {
+  resize: vertical;
 }
 
-/* خلي الأزرار تاخذ سطر كامل إذا لزم */
-.admin-page .employee button {
-  width: auto;
-  max-width: 100%;
+/* ================== الأزرار ================== */
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
 }
-/* ===== حل نهائي لقص زر حفظ في كروت الموظفين ===== */
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+
+.btn-yellow {
+  background: var(--yellow);
+  color: #000;
+}
+
+/* ================== قائمة الموظفين (الإصلاح الكامل) ================== */
+.staff-list,
+#staffList,
+.employee-list {
+  max-height: 75vh;
+  overflow-y: auto;
+  padding-left: 6px;
+}
 
 /* كرت الموظف */
-.card,
+.staff-card,
 .employee-card,
-.staff-card {
-  overflow: visible !important;
-  height: auto !important;
+.staff-item {
+  background: #e9fbff;
+  border-radius: 14px;
+  border: 2px solid var(--border);
+  padding: 10px;
+  margin-bottom: 10px;
+  overflow: hidden; /* يمنع التداخل */
 }
 
-/* العمود الذي يحتوي كروت الموظفين */
-.card > div,
-.employee-card > div,
-.staff-card > div {
-  overflow: visible !important;
+/* الاسم والرتبة */
+.staff-name {
+  font-weight: bold;
+  margin-bottom: 6px;
 }
 
-/* أزرار داخل كرت الموظف */
-.card button,
-.employee-card button,
-.staff-card button {
-  white-space: nowrap;
-  margin-top: 6px;
+/* نطاق الأرقام */
+.staff-range {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.staff-range input {
+  width: 50%;
+}
+
+/* أزرار الموظف */
+.staff-actions,
+.actions {
+  display: flex;
+  flex-wrap: wrap;          /* أهم سطر */
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.staff-actions button,
+.actions button {
+  flex: 1 1 auto;
+  min-width: 70px;
+}
+
+/* ================== شاشة العرض ================== */
+.display-current {
+  background: #d9f6fb;
+  border-radius: 16px;
+  border: 2px solid var(--border);
+  text-align: center;
+  padding: 20px;
+}
+
+.display-number {
+  font-size: 64px;
+  font-weight: bold;
+}
+
+/* حالات النجاح والرسوب */
+.result-success {
+  border: 4px solid #1976d2;
+}
+
+.result-fail {
+  border: 4px solid #e53935;
+}
+
+/* ================== الأعمدة الجانبية ================== */
+.side-column {
+  background: var(--card-2);
+  border-radius: 16px;
+  padding: 10px;
+  border: 2px solid var(--border);
+}
+
+/* ================== شريط الحالة ================== */
+.status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #c8f7c5;
+  font-size: 12px;
+  margin: 6px auto;
+}
+
+/* ================== الفوتر ================== */
+.footer {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 10px;
+  opacity: 0.8;
+}
+
+/* ================== استجابة الشاشات ================== */
+@media (max-width: 1100px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
 }
