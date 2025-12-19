@@ -189,3 +189,28 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
     grid-template-columns: 1fr;
   }
 }
+
+
+/* === Override: Staff list single column with scroll (requested) === */
+#staffList{
+  display:block !important;
+}
+#staffList > *{
+  width:100% !important;
+  max-width:100% !important;
+}
+.staff-container, .staff-list, #staffList{
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  max-height:65vh !important;
+  padding-right:6px;
+}
+/* make cards stack nicely */
+.staffCard, .staff-card, .staff-item, #staffList .card, #staffList .staffRow, #staffList .staffEntry{
+  margin-bottom:12px !important;
+}
+/* prevent any inner controls overlapping */
+#staffList button, #staffList input{
+  max-width:100%;
+}
+
