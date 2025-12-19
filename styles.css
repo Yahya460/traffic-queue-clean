@@ -1,217 +1,117 @@
-/* ================== إعدادات عامة ================== */
-:root {
-  --bg: #00bcd4;
-  --card: #dff7fb;
-  --card-2: #cceff5;
-  --border: #1aa6b7;
-  --yellow: #ffe680;
-  --text: #003b44;
-  --danger: #e53935;
-  --success: #2e7d32;
-  --primary: #1976d2;
-}
-
-* {
+/* =========================
+   إعدادات عامة
+========================= */
+*{
   box-sizing: border-box;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Kufi Arabic",
-    "Noto Sans Arabic", Arial, sans-serif;
 }
 
-html,
-body {
+html, body{
   margin: 0;
   padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Kufi Arabic", "Noto Sans Arabic", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
 
-/* ================== العناوين ================== */
-h1,
-h2,
-h3 {
-  margin: 0 0 10px;
-  text-align: center;
+/* =========================
+   متغيرات الألوان
+========================= */
+:root{
+  --bg: #00bcd4;
+  --card: #b2ebf2;
+  --card-soft: #dff7fb;
+  --border: #ff5252;
+  --text: #00323a;
+  --yellow: #ffeb3b;
+  --blue: #2196f3;
+  --red: #e53935;
 }
 
-/* ================== الحاويات الرئيسية ================== */
-.container {
-  width: 100%;
-  padding: 12px;
-}
-
-.columns {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
-  gap: 12px;
-}
-
-/* ================== الكروت ================== */
-.card {
+/* =========================
+   البطاقات العامة
+========================= */
+.card{
   background: var(--card);
   border-radius: 14px;
   padding: 12px;
-  border: 2px solid var(--border);
-}
-
-/* ================== شريط العنوان ================== */
-.header {
-  background: var(--card-2);
-  border-radius: 16px;
-  padding: 14px;
-  border: 2px solid var(--border);
   margin-bottom: 12px;
 }
 
-/* ================== الحقول ================== */
-input,
-select,
-textarea {
+/* =========================
+   قائمة الموظفين – الحل هنا
+========================= */
+#staffList{
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* عمودين فقط */
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* حماية الكرت من التداخل */
+#staffList > *{
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  outline: none;
+  break-inside: avoid;
+}
+
+/* =========================
+   كرت الموظف
+========================= */
+.staff-card,
+.employee-card{
+  background: var(--card-soft);
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+/* =========================
+   الحقول والأزرار
+========================= */
+input, select, textarea{
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
   margin-bottom: 6px;
-}
-
-textarea {
-  resize: vertical;
-}
-
-/* ================== الأزرار ================== */
-button {
-  border: none;
-  border-radius: 10px;
-  padding: 6px 12px;
-  cursor: pointer;
   font-size: 13px;
 }
 
-.btn-primary {
-  background: var(--primary);
+button{
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-save{
+  background: var(--blue);
   color: #fff;
 }
 
-.btn-danger {
-  background: var(--danger);
+.btn-delete{
+  background: var(--red);
   color: #fff;
 }
 
-.btn-success {
-  background: var(--success);
-  color: #fff;
-}
-
-.btn-yellow {
+.btn-edit{
   background: var(--yellow);
   color: #000;
 }
 
-/* ================== قائمة الموظفين (الإصلاح الكامل) ================== */
-.staff-list,
-#staffList,
-.employee-list {
-  max-height: 75vh;
-  overflow-y: auto;
-  padding-left: 6px;
-}
-
-/* كرت الموظف */
-.staff-card,
-.employee-card,
-.staff-item {
-  background: #e9fbff;
-  border-radius: 14px;
-  border: 2px solid var(--border);
-  padding: 10px;
-  margin-bottom: 10px;
-  overflow: hidden; /* يمنع التداخل */
-}
-
-/* الاسم والرتبة */
-.staff-name {
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-
-/* نطاق الأرقام */
-.staff-range {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.staff-range input {
-  width: 50%;
-}
-
-/* أزرار الموظف */
-.staff-actions,
-.actions {
-  display: flex;
-  flex-wrap: wrap;          /* أهم سطر */
-  gap: 6px;
-  justify-content: flex-start;
-}
-
-.staff-actions button,
-.actions button {
-  flex: 1 1 auto;
-  min-width: 70px;
-}
-
-/* ================== شاشة العرض ================== */
-.display-current {
-  background: #d9f6fb;
-  border-radius: 16px;
-  border: 2px solid var(--border);
-  text-align: center;
-  padding: 20px;
-}
-
-.display-number {
-  font-size: 64px;
-  font-weight: bold;
-}
-
-/* حالات النجاح والرسوب */
-.result-success {
-  border: 4px solid #1976d2;
-}
-
-.result-fail {
-  border: 4px solid #e53935;
-}
-
-/* ================== الأعمدة الجانبية ================== */
-.side-column {
-  background: var(--card-2);
-  border-radius: 16px;
-  padding: 10px;
-  border: 2px solid var(--border);
-}
-
-/* ================== شريط الحالة ================== */
-.status {
+/* =========================
+   منع أي تداخل
+========================= */
+.staff-card button{
+  margin-top: 4px;
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: #c8f7c5;
-  font-size: 12px;
-  margin: 6px auto;
 }
 
-/* ================== الفوتر ================== */
-.footer {
-  text-align: center;
-  font-size: 12px;
-  margin-top: 10px;
-  opacity: 0.8;
-}
-
-/* ================== استجابة الشاشات ================== */
-@media (max-width: 1100px) {
-  .columns {
+/* =========================
+   استجابة الشاشات الصغيرة
+========================= */
+@media (max-width: 900px){
+  #staffList{
     grid-template-columns: 1fr;
   }
 }
