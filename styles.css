@@ -118,3 +118,9 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 .admin-staff-actions button {
   min-width: 86px;
 }
+/* منع تداخل أزرار الموظفين في لوحة المدير */
+.admin-staff-actions {
+  display: flex;
+  flex-wrap: wrap;   /* ← هذا السطر المهم */
+  gap: 6px;
+}
