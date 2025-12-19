@@ -77,7 +77,8 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
 // مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
 ref.get("historyMen").put([]);
 ref.get("historyWomen").put([]);
-ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" }); });
+ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
+ref.get("results").put({}); });
   }
 
   function setConn(el, ok){
@@ -391,6 +392,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
 ref.get("historyMen").put([]);
 ref.get("historyWomen").put([]);
 ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
+ref.get("results").put({});
       say("تم تصفير النظام ✅");
     };
   }
@@ -597,7 +599,21 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       $("#curNumber").textContent = c.number ?? "--";
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
       const card = document.querySelector(".bigNumberCard");
-      if(card){ card.classList.remove("pass","fail"); if(c.result==="pass") card.classList.add("pass"); else if(c.result==="fail") card.classList.add("fail"); }
+      if(card){
+        card.classList.remove("pass","fail");
+        if(c.result==="pass") card.classList.add("pass");
+        else if(c.result==="fail") card.classList.add("fail");
+      }
+      const numKey = String(c.number||"").trim();
+      if(numKey){
+        ref.get("results").get(numKey).once((r)=>{
+          const card2 = document.querySelector(".bigNumberCard");
+          if(!card2) return;
+          if(card2.classList.contains("pass") || card2.classList.contains("fail")) return;
+          if(r?.result==="pass") card2.classList.add("pass");
+          else if(r?.result==="fail") card2.classList.add("fail");
+        });
+      }
       $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
       if(c.ts && c.ts !== lastTs){
         lastTs = c.ts;

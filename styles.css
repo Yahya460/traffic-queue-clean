@@ -91,3 +91,18 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 #staffList{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
 #staffList .staffRow{break-inside:avoid}
 @media (max-width: 900px){#staffList{grid-template-columns:1fr}}
+
+.adminTopGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media (max-width: 900px){.adminTopGrid{grid-template-columns:1fr}}
+
+.adminPrivateGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+@media (max-width: 1100px){.adminPrivateGrid{grid-template-columns:1fr 1fr}}
+@media (max-width: 800px){.adminPrivateGrid{grid-template-columns:1fr}}
+
+.staffListGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width: 900px){.staffListGrid{grid-template-columns:1fr}}
+
+.adminStaffCard{grid-column:1 / -1}
+
+.imgWrap{margin-top:10px;min-height:120px;border-radius:16px;border:1px dashed rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(255,255,255,.25)}
+.imgWrap img{max-width:100%;height:auto;display:block}

@@ -4,156 +4,131 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>لوحة المدير - نظام الدور</title>
-  <link rel="stylesheet" href="./styles.css?v=22"/>
+  <link rel="stylesheet" href="./styles.css?v=23"/>
 </head>
 <body>
   <div class="container">
     <div class="top">
       <h1>لوحة المدير</h1>
-      <p>إعدادات + رقم المدير + إدارة الموظفين + الصورة + الملاحظة</p>
+      <p>الفرع + الحماية (PIN) ثم تظهر بقية الإعدادات بعد إدخال رقم المدير</p>
     </div>
 
     <div class="subbar">
-      <button class="btn mini" id="fsBtn" title="ملء الشاشة">⛶ ملء الشاشة</button>
-      <div class="pill">الحالة: <b id="conn">غير متصل…</b></div>
-      <div class="pill"></div>
+      <a class="pill" href="./index.html?branch=">الصفحة الرئيسية</a>
+      <span class="pill">الحالة: <b id="conn">غير متصل...</b></span>
+      <button class="pill" id="fsBtn" type="button">ملء الشاشة ⛶</button>
     </div>
 
-    <div class="cardRow">
+    <div class="adminTopGrid">
       <div class="card">
         <div class="hd">الفرع</div>
         <div class="bd">
           <label>الفرع</label>
-          <select id="branchSelect">
-            <option value="SOHAR">1- Sohar</option>
-<option value="MUSCAT">2- Muscat</option>
-<option value="NIZWA">3- Nizwa</option>
-<option value="IBRI">4- Ibri</option>
-<option value="IBRA">5- Ibra</option>
-<option value="SUR">6- Sur</option>
-<option value="HAIMA">7- Haima</option>
-<option value="SALALAH">8- Salalah</option>
-<option value="BURAIMI">9- Buraimi</option>
-<option value="MUSANDAM">10- Musandam</option>
-<option value="RUSTAQ">11- Rustaq</option>
-          </select>
-          <input id="branchValue" type="hidden" />
-          <div class="btns"><button class="gray" id="setBranch">تغيير الفرع</button></div>
-          <small class="help">انسخ نفس الفرع إلى الموظف وشاشة العرض.</small>
+          <select id="branchSelect"></select>
+          <button class="btn" id="setBranch" style="margin-top:10px">تغيير الفرع</button>
+          <small class="help">انسخ نفس الفرع إلى شاشة العرض والموظف.</small>
         </div>
       </div>
 
       <div class="card">
         <div class="hd">الحماية (PIN)</div>
         <div class="bd">
-          <div class="pill" id="msg">جاهز</div>
-          <label style="margin-top:10px">رقم المدير (Admin PIN)</label>
-          <input id="adminPin" type="password" placeholder="اكتب رقم تختاره (مثال 1234)"/>
-          <div class="btns">
-            <button class="primary" id="saveAdminPin">حفظ رقم المدير</button>
+          <label>رقم المدير (Admin PIN)</label>
+          <input id="adminPin" inputmode="numeric" placeholder="اكتب رقم المدير"/>
+          <div class="btns" style="margin-top:10px">
+            <button class="primary" id="saveAdminPin">فتح / حفظ رقم المدير</button>
             <button class="danger" id="resetAdminPin">إعادة تعيين رقم المدير</button>
           </div>
-        </div>
-      </div>
-
-      <div id="adminPrivate" class="adminPrivate isLocked">
-      <div class="card">
-        <div class="hd">إعدادات النظام</div>
-        <div class="bd">
-          <label>اسم الجهة</label>
-          <input id="instituteName" placeholder="معهد السلامة المرورية"/>
-          <label style="margin-top:10px">عدد الأرقام المحفوظة في السجل</label>
-          <input id="historyLimit" type="number" min="3" max="60" value="15"/>
-          <label style="margin-top:10px">النص السفلي</label>
-          <input id="tickerText" placeholder="يرجى الالتزام بالهدوء وانتظار دوركم..."/>
-          <div class="btns"><button class="primary" id="saveSettings">حفظ الإعدادات</button></div>
+          <small class="help">بعد إدخال الرقم الصحيح ستظهر باقي الأقسام تلقائيًا.</small>
+          <div id="msg" class="msg" style="margin-top:10px"></div>
         </div>
       </div>
     </div>
 
-    <div class="cardRow" style="margin-top:14px">
-      <div class="card">
-        <div class="hd">الملاحظة (صلاحية المدير فقط)</div>
-        <div class="bd">
-          <label>نص الملاحظة</label>
-          <textarea id="adminNote" placeholder="مثال: يرجى التوجه لغرفة التجهيز"></textarea>
-          <div class="btns">
-            <button class="primary" id="saveAdminNote">حفظ الملاحظة</button>
-            <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
-            <button class="danger" id="resetAll">تصفير النظام بالكامل</button>
+    <div id="adminPrivate" class="adminPrivate isLocked">
+      <div class="adminPrivateGrid">
+        <div class="card">
+          <div class="hd">إعدادات النظام</div>
+          <div class="bd">
+            <label>اسم الجهة</label>
+            <input id="instituteName" placeholder="معهد السلامة المرورية"/>
+            <label style="margin-top:10px">عدد الأرقام المحفوظة في السجل</label>
+            <input id="historyLimit" type="number" min="3" max="60" value="15"/>
+            <label style="margin-top:10px">النص السفلي</label>
+            <input id="tickerText" placeholder="يرجى الالتزام بالهدوء..."/>
+            <div class="btns" style="margin-top:10px">
+              <button class="primary" id="saveSettings">حفظ الإعدادات</button>
+              <button class="warn" id="resetAll">تصفير النظام بالكامل</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="hd">إدارة الموظفين</div>
-        <div class="bd">
-          <label>اسم المستخدم الجديد</label>
-          <input id="newUsername" placeholder="مثال: يوسف"/>
-          <label style="margin-top:10px">رقم الموظف</label>
-          <input id="newUserPin" type="password" placeholder="مثال: 4321"/>
-          <div class="btns"><button class="primary" id="addStaff">إضافة موظف</button></div>
-          <small class="help">يمكنك حذف أو تغيير الاسم من القائمة بالأسفل.</small>
-          <div style="margin-top:12px" id="staffList"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="hd">الصورة في العمود الأوسط</div>
-        <div class="bd">
-          <div class="pill" id="imgName"></div>
-          <label>اختر صورة (PNG/JPG)</label>
-          <input id="imgFile" type="file" accept="image/*"/>
-          <div class="btns">
-            <button class="danger" id="clearImage">حذف الصورة</button>
+        <div class="card">
+          <div class="hd">الصورة في العمود الأوسط</div>
+          <div class="bd">
+            <label>اختر صورة (PNG/JPG)</label>
+            <input id="centerImg" type="file" accept="image/png,image/jpeg"/>
+            <div id="centerImgWrap" class="imgWrap"></div>
           </div>
-          <div class="centerImage" id="imgHolder" style="margin-top:10px"></div>
         </div>
-      <div class="cardRow" style="margin-top:14px">
-  <div class="card" style="grid-column:1/-1">
-    <div class="hd">دردشة المدير مع الموظفين (للفرع الحالي)</div>
-    <div class="bd">
-          <label>اختر الموظف</label>
-          <select id="chatUserSelect"><option value="">اختر موظف…</option></select>
-          <small class="help">اختر موظف لعرض الدردشة الخاصة معه.</small>
-          
-          <div id="chatListAdmin" class="chatList"></div>
-      <label style="margin-top:10px">اكتب رسالة</label>
-      <input id="chatTextAdmin" placeholder="رسالة للموظفين..." />
-      <div class="btns">
-        <button class="primary" id="sendChatAdmin">إرسال</button>
-        <button class="danger" id="clearChatAdmin">مسح الدردشة</button>
-      </div>
-      <small class="help">الدردشة مرتبطة بالفرع فقط ✅</small>
-    </div>
-  </div>
-</div>
 
-</div>
+        <div class="card">
+          <div class="hd">الملاحظة (صلاحية المدير فقط)</div>
+          <div class="bd">
+            <label>نص الملاحظة</label>
+            <textarea id="adminNote" rows="5" placeholder="اكتب ملاحظة تظهر في شاشة العرض..."></textarea>
+            <div class="btns" style="margin-top:10px">
+              <button class="primary" id="saveAdminNote">حفظ الملاحظة</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card adminStaffCard">
+          <div class="hd">إدارة الموظفين + نطاقاتهم</div>
+          <div class="bd">
+            <label>اسم المستخدم الجديد</label>
+            <input id="newUsername" placeholder="مثال: أحمد"/>
+            <label style="margin-top:10px">رقم الموظف (PIN)</label>
+            <input id="newUserPin" inputmode="numeric" placeholder="مثال: 4321"/>
+            <div class="btns" style="margin-top:10px">
+              <button class="primary" id="addStaff">إضافة موظف</button>
+            </div>
+            <hr style="margin:12px 0;opacity:.25"/>
+            <div id="staffList" class="staffListGrid"></div>
+            <small class="help">يمكنك تحديد (من/إلى) لكل موظف + حفظ.</small>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">دردشة المدير مع الموظفين</div>
+          <div class="bd">
+            <label>اختر موظف</label>
+            <select id="chatUserSelect"></select>
+            <div class="chatBox" id="chatListAdmin"></div>
+            <div class="row" style="margin-top:10px;display:flex;gap:8px">
+              <input id="chatTextAdmin" placeholder="اكتب رسالة..." style="flex:1"/>
+              <button class="primary" id="sendChatAdmin">إرسال</button>
+            </div>
+            <div class="btns" style="margin-top:10px">
+              <button class="danger" id="clearChatAdmin">مسح الدردشة</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
     <div class="rights">جميع الحقوق محفوظة — الرقيب أول يحيى آل عبدالسلام</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=22"></script>
-  <script>window.TQ.initAdmin();</script>
-
-<script>
-  function toggleFullscreen(){
-    try{
-      if(!document.fullscreenElement){
-        (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
-      }else{
-        (document.exitFullscreen||document.webkitExitFullscreen).call(document);
-      }
-    }catch(e){}
-  }
-  document.addEventListener("DOMContentLoaded", ()=>{
-    const b=document.getElementById("fsBtn");
-    if(b) b.onclick = toggleFullscreen;
-  });
-</script>
-
+  <script src="./app.js?v=23"></script>
+  <script>
+    document.getElementById('fsBtn')?.addEventListener('click', ()=>{
+      const el = document.documentElement;
+      if(!document.fullscreenElement) el.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    });
+  </script>
 </body>
 </html>
