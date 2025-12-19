@@ -75,7 +75,6 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   function ensure(ref){
     // Initialize data only if it doesn't exist yet (DO NOT reset data here)
     ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults()); });
-  });
   }
 
   function setConn(el, ok){
@@ -402,9 +401,18 @@ ref.get("results").put({});
       // تصفير الرقم الحالي
       ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
 
-      // تصفير سجل تم النداء (رجال/نساء) الذي تعرضه شاشة العرض
-      ref.get("history").put({ men:{}, women:{} });
-
+      // تصفير سجل تم النداء (رجال/نساء) بطريقة حذف العناصر (Gun لا يمسح بالمِرج وحده)
+      const clearBucket = (bucket)=> new Promise(res=>{
+        ref.get("history").get(bucket).once((obj)=>{
+          const keys = obj ? Object.keys(obj).filter(k=>k!=="_" ) : [];
+          if(!keys.length) return res();
+          keys.forEach(k=> ref.get("history").get(bucket).get(k).put(null));
+          // انتظر لحظة بسيطة لانتشار الحذف
+          setTimeout(res, 200);
+        });
+      });
+      await clearBucket("men");
+      await clearBucket("women");
       // تصفير نتائج ناجح/راسب
       ref.get("results").put({});
 
