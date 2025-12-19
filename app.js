@@ -73,7 +73,11 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   }
 
   function ensure(ref){
-    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults()); });
+    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults());
+// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
+ref.get("historyMen").put([]);
+ref.get("historyWomen").put([]);
+ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" }); });
   }
 
   function setConn(el, ok){
@@ -170,19 +174,77 @@ $("#branchValue").value = b;
       const list = $("#staffList");
       const keys = obj ? Object.keys(obj).filter(k=>k!=="_" && obj[k]).sort() : [];
       list.innerHTML = keys.length ? keys.map(u=>`
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
+        <div class="staffRow" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12);margin-bottom:8px">
           <div style="font-weight:900">${esc(u)}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="warn" data-rename="${esc(u)}">تغيير الاسم</button>
-            <button class="danger" data-del="${esc(u)}">حذف</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.12)">
+              <span style="font-weight:900;color:rgba(11,34,48,.85)">من</span>
+              <input data-from="${encodeURIComponent(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
+              <span style="font-weight:900;color:rgba(11,34,48,.85)">إلى</span>
+              <input data-to="${encodeURIComponent(u)}" type="number" inputmode="numeric" style="width:92px;padding:6px 8px;border-radius:10px;border:1px solid rgba(0,0,0,.18)" />
+              <button class="btn mini" data-save-range="${encodeURIComponent(u)}">حفظ</button>
+              <button class="btn mini" data-reset-next="${encodeURIComponent(u)}">تصفير التالي</button>
+            </div>
+            <button class="warn" data-rename="${encodeURIComponent(u)}">تغيير الاسم</button>
+            <button class="danger" data-del="${encodeURIComponent(u)}">حذف</button>
           </div>
-        </div>`).join("") : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد موظفون</div>`;
+        </div>`).join("") : `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:800;padding:10px">لا يوجد موظفون</div>`
+      // تعبئة نطاقات الموظفين (من/إلى)
+      list.querySelectorAll('[data-from]').forEach(inp=>{
+        const uEnc = inp.getAttribute('data-from');
+        const u = decodeURIComponent(uEnc);
+        const d = (obj && obj[u]) ? obj[u] : {};
+        inp.value = (d.rangeFrom ?? "");
+      });
+      list.querySelectorAll('[data-to]').forEach(inp=>{
+        const uEnc = inp.getAttribute('data-to');
+        const u = decodeURIComponent(uEnc);
+        const d = (obj && obj[u]) ? obj[u] : {};
+        inp.value = (d.rangeTo ?? "");
+      });
+;
 
-      list.querySelectorAll("[data-del]").forEach(btn=>{
+      list.querySelectorAll("[data-save-range]").forEach(btn=>{
+  btn.onclick = async ()=>{
+    const adminPin = ($("#adminPin").value||"").trim();
+    if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
+    const uEnc = btn.getAttribute("data-save-range");
+          const u = decodeURIComponent(uEnc);
+    const fEl = list.querySelector(`[data-from="${uEnc}"]`);
+    const tEl = list.querySelector(`[data-to="${uEnc}"]`);
+    const from = parseInt((fEl?.value||"").trim(),10);
+    const to = parseInt((tEl?.value||"").trim(),10);
+    if(!Number.isFinite(from) || !Number.isFinite(to) || from>to){
+      say("أدخل نطاق صحيح (من أقل أو يساوي إلى)");
+      return;
+    }
+    ref.get("staffUsers").get(u).put({ rangeFrom: from, rangeTo: to, nextNumber: from, ts: Date.now() });
+    say("تم حفظ النطاق ✅");
+  };
+});
+
+list.querySelectorAll("[data-reset-next]").forEach(btn=>{
+  btn.onclick = async ()=>{
+    const adminPin = ($("#adminPin").value||"").trim();
+    if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
+    const uEnc = btn.getAttribute("data-reset-next");
+          const u = decodeURIComponent(uEnc);
+    // أعد التالي إلى "من"
+    ref.get("staffUsers").get(u).once((d)=>{
+      const from = parseInt(d?.rangeFrom,10);
+      if(!Number.isFinite(from)){ say("حدد نطاق (من/إلى) أولاً"); return; }
+      ref.get("staffUsers").get(u).put({ nextNumber: from, ts: Date.now() });
+      say("تم تصفير التالي ✅");
+    });
+  };
+});
+
+list.querySelectorAll("[data-del]").forEach(btn=>{
         btn.onclick = async ()=>{
           const adminPin = ($("#adminPin").value||"").trim();
           if(!(await requireAdmin(adminPin)).ok){ say("رقم المدير غير صحيح"); return; }
-          const u = btn.getAttribute("data-del");
+          const uEnc = btn.getAttribute("data-del");
+        const u = decodeURIComponent(uEnc);
           if(!confirm(`حذف الموظف: ${u} ؟`)) return;
           ref.get("staffUsers").get(u).put(null);
           say("تم حذف الموظف ✅");
@@ -199,7 +261,7 @@ $("#branchValue").value = b;
           if(!nu || nu===oldU) return;
           ref.get("staffUsers").get(oldU).once((data)=>{
             if(!data) return;
-            ref.get("staffUsers").get(nu).put({ pinHash: data.pinHash || "", ts: Date.now() });
+            ref.get("staffUsers").get(nu).put({ pinHash: data.pinHash || "", rangeFrom: data.rangeFrom ?? "", rangeTo: data.rangeTo ?? "", nextNumber: data.nextNumber ?? "", ts: Date.now() });
             ref.get("staffUsers").get(oldU).put(null);
             say("تم تغيير اسم المستخدم ✅");
           });
@@ -224,8 +286,24 @@ $("#branchValue").value = b;
       const first = await setAdminIfEmpty(pin);
       if(first.ok && first.first){ say("تم حفظ رقم المدير لأول مرة ✅"); return; }
       const chk = await requireAdmin(pin);
-      say(chk.ok ? "رقم المدير صحيح ✅ (محفوظ)" : "رقم المدير غير صحيح");
+      if(chk.ok){
+        const priv = document.querySelector("#adminPrivate");
+        if(priv) priv.classList.remove("isLocked");
+      }
+      say(chk.ok ? "رقم المدير صحيح ✅ (تم فتح الخصوصية)" : "رقم المدير غير صحيح");
     };
+
+    const unlockPrivate = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(!pin) return;
+      const chk = await requireAdmin(pin);
+      if(chk.ok){
+        const priv = document.querySelector("#adminPrivate");
+        if(priv) priv.classList.remove("isLocked");
+      }
+    };
+    $("#adminPin").addEventListener("change", unlockPrivate);
+    $("#adminPin").addEventListener("keyup", (e)=>{ if(e.key==="Enter") unlockPrivate(); });
 
     $("#resetAdminPin").onclick = async ()=>{
   const code = prompt("أدخل كود إعادة التعيين:");
@@ -309,12 +387,26 @@ $("#branchValue").value = b;
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       if(!confirm("أكيد تريد تصفير النظام بالكامل؟")) return;
       ref.put(defaults());
+// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
+ref.get("historyMen").put([]);
+ref.get("historyWomen").put([]);
+ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
       say("تم تصفير النظام ✅");
     };
   }
 
   // ========= Staff =========
   async function initStaff(){
+    function parseOverrideRange(){
+      const raw = ($('#staffRangeOverride')?.value || '').trim();
+      if(!raw) return null;
+      const m = raw.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+      if(!m) return null;
+      const from = parseInt(m[1],10), to = parseInt(m[2],10);
+      if(!Number.isFinite(from) || !Number.isFinite(to) || from>to) return null;
+      return {from,to};
+    }
+
     const b = branch();
     const gun = makeGun();
     const ref = refFor(gun, b);
@@ -350,18 +442,18 @@ $("#branchValue").value = b;
     });
 
     async function requireStaff(){
-      const u = (userSel.value || "").trim();
-      if(!u){ say("اختر اسم المستخدم"); return null; }
-      const pin = ($("#userPin").value || "").trim();
-      if(!pin){ say("أدخل رقم الموظف"); return null; }
-      const data = await new Promise(res=> ref.get("staffUsers").get(u).once(res));
-      if(!data || !data.pinHash){ say("هذا المستخدم غير موجود"); return null; }
-      if(await sha256(pin) !== data.pinHash){ say("رقم الموظف غير صحيح"); return null; }
-      return u;
-    }
+  const u = (userSel.value || "").trim();
+  if(!u){ say("اختر اسم المستخدم"); return null; }
+  const pin = ($("#userPin").value || "").trim();
+  if(!pin){ say("أدخل رقم الموظف"); return null; }
+  const data = await new Promise(res=> ref.get("staffUsers").get(u).once(res));
+  if(!data || !data.pinHash){ say("هذا المستخدم غير موجود"); return null; }
+  if(await sha256(pin) !== data.pinHash){ say("رقم الموظف غير صحيح"); return null; }
+  return { u, data };
+}
 
     // Chat
-    initChatStaff(ref, requireStaff);
+    initChatStaff(ref, async ()=>{ const r = await requireStaff(); return r ? r.u : null; });
 
 
     $("#setBranch").onclick = ()=>{
@@ -375,13 +467,28 @@ $("#branchValue").value = b;
 };
 
     $("#callNext").onclick = async ()=>{
-      const username = await requireStaff();
-      if(!username) return;
+      const auth = await requireStaff();
+      if(!auth) return;
+      const username = auth.u;
+      const staffData = auth.data || {};
 
       const num = ($("#ticketNum").value || "").trim();
       const gender = $("#gender").value;
       if(!num){ say("أدخل رقم المتدرب"); return; }
       if(!gender){ say("اختر (رجال/نساء)"); return; }
+
+      // تقييد النطاق (من/إلى) إن وُجد
+      const ov = parseOverrideRange();
+      const n = parseInt(num, 10);
+      const rf = ov ? ov.from : staffData?.rangeFrom;
+      const rt = ov ? ov.to : staffData?.rangeTo;
+      if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
+        const from = parseInt(rf,10), to = parseInt(rt,10);
+        if(!Number.isFinite(n) || n < from || n > to){
+          say(`هذا الموظف مسموح له بالأرقام من ${from} إلى ${to} فقط`);
+          return;
+        }
+      }
 
       const settings = await new Promise(res=> ref.get("settings").once(res));
   const limit = Math.max(3, Math.min(60, parseInt(settings?.historyLimit || 15,10)));
@@ -411,9 +518,59 @@ $("#branchValue").value = b;
   }
 
   // 2) تحديث الرقم الحالي
-  ref.get("current").put({ number:num, gender, staff: username, ts: now });
-  say("تم النداء ✅");
+  ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
+  // تحديث "التالي" للموظف إذا كان ضمن نطاقه
+      const ov2 = parseOverrideRange();
+      const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
+      const rt2 = ov2 ? ov2.to : staffData?.rangeTo;
+      if(rf2 !== undefined && rf2 !== null && rt2 !== undefined && rt2 !== null && rf2 !== "" && rt2 !== ""){
+        const from2 = parseInt(rf2,10), to2 = parseInt(rt2,10);
+        const nextNow = Number.isFinite(parseInt(staffData?.nextNumber,10)) ? parseInt(staffData.nextNumber,10) : from2;
+        if(Number.isFinite(n) && n >= from2 && n <= to2){
+          // إذا الموظف نادى الرقم المتوقع، قدّم التالي
+          if(n === nextNow){
+            const nn = Math.min(to2+1, nextNow+1);
+            ref.get("staffUsers").get(username).put({ nextNumber: nn, ts: Date.now() });
+          }
+        }
+      }
+
+      say("تم النداء ✅");
 };
+
+$("#requestNext").onclick = async ()=>{
+  const auth = await requireStaff();
+  if(!auth) return;
+  const staffData = auth.data || {};
+  const ov = parseOverrideRange();
+  const rf = ov ? ov.from : staffData?.rangeFrom;
+  const rt = ov ? ov.to : staffData?.rangeTo;
+
+  if(rf === undefined || rf === null || rt === undefined || rt === null || rf === "" || rt === ""){
+    say("لا يوجد نطاق مخصص لهذا الموظف. حدده من لوحة المدير.");
+    return;
+  }
+  const from = parseInt(rf,10), to = parseInt(rt,10);
+  let nextNow = Number.isFinite(parseInt(staffData?.nextNumber,10)) ? parseInt(staffData.nextNumber,10) : from;
+  if(nextNow < from) nextNow = from;
+  if(nextNow > to){
+    say("انتهى نطاقك المحدد ✅");
+    return;
+  }
+
+  $("#ticketNum").value = String(nextNow);
+
+  // لازم اختيار الجنس قبل النداء
+  const gender = $("#gender").value;
+  if(!gender){
+    say(`تم اختيار التالي: ${nextNow} ✅ اختر (رجال/نساء) ثم اضغط طلب التالي مرة ثانية أو اضغط نداء`);
+    return;
+  }
+
+  // نداء تلقائي
+  $("#callNext").click();
+};
+
   }
 
   // ========= Display =========
@@ -439,6 +596,8 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       if(!c) return;
       $("#curNumber").textContent = c.number ?? "--";
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
+      const card = document.querySelector(".bigNumberCard");
+      if(card){ card.classList.remove("pass","fail"); if(c.result==="pass") card.classList.add("pass"); else if(c.result==="fail") card.classList.add("fail"); }
       $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
       if(c.ts && c.ts !== lastTs){
         lastTs = c.ts;
@@ -470,8 +629,17 @@ function makeBucketRenderer(bucket, target){
       store[key] = val;
     }
     const keys = Object.keys(store).sort((a,b)=>Number(b)-Number(a));
-    const nums = keys.map(k => store[k]?.number).filter(Boolean);
-    target.innerHTML = nums.map(n=>`<div class="tile">${esc(n)}</div>`).join("") ||
+
+    const items = keys.map(k => store[k]).filter(Boolean).map(it=>{
+      const num = it.number;
+      const ts  = it.ts || 0;
+      return { num, ts };
+    }).filter(x=>x.num);
+
+    target.innerHTML = items.map(x=>{
+      const t = x.ts ? formatTime(x.ts) : "";
+      return `<div class="tile"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
+    }).join("") ||
       `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
   });
 }
