@@ -63,6 +63,11 @@
           <input id="instituteName" placeholder="معهد السلامة المرورية"/>
           <label style="margin-top:10px">عدد الأرقام المحفوظة في السجل</label>
           <input id="historyLimit" type="number" min="3" max="60" value="15"/>
+          <label style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <input type="checkbox" id="autoDailyReset" style="width:auto;transform:scale(1.1)"/>
+            <span>تصفير تلقائي نهاية اليوم (للنداءات والرقم الحالي)</span>
+          </label>
+          <small class="help">عند تغيير التاريخ في الجهاز سيتم تصفير النداءات تلقائيًا على الفرع الحالي.</small>
           <label style="margin-top:10px">النص السفلي</label>
           <input id="tickerText" placeholder="يرجى الالتزام بالهدوء وانتظار دوركم..."/>
           <div class="btns"><button class="primary" id="saveSettings">حفظ الإعدادات</button></div>
@@ -90,6 +95,11 @@
               <button class="warn" id="resetCallsMen">تصفير نداءات الرجال</button>
               <button class="warn" id="resetCallsWomen">تصفير نداءات النساء</button>
               <button class="danger" id="resetCallsBranch">تصفير النداءات + الرقم الحالي</button>
+            <div class="splitLine"></div>
+            <div class="hd" style="margin-top:10px">إحصائيات اليوم</div>
+            <div class="hint" style="margin-top:6px;color:#6b7280;font-size:13px">
+              التاريخ: <b id="statsDate">—</b> | رجال: <b id="statsMen">0</b> | نساء: <b id="statsWomen">0</b> | الإجمالي: <b id="statsTotal">0</b>
+            </div>
             </div>
         </div>
       </div>

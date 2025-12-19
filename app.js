@@ -62,7 +62,7 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
 
   function defaults(){
     return {
-      settings:{ historyLimit:15, instituteName:"معهد السلامة المرورية", tickerText:"يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح" },
+      settings:{ historyLimit:15, autoDailyReset:false, instituteName:"معهد السلامة المرورية", tickerText:"يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح" },
       current:{ number:"--", gender:"", staff:"", ts:0 },
       note:{ text:"", staff:"", ts:0 },
       history:{ men:{}, women:{} },
@@ -71,6 +71,71 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
       staffUsers:{}
     };
   }
+
+  // ===== يوم/إحصائيات/تصفير تلقائي =====
+  function localYMD(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+
+  async function getSettings(ref){
+    return await new Promise(res=> ref.get("settings").once(res));
+  }
+
+  function resetCallsOnly(ref){
+    // تصفير النداءات (رجال/نساء) فقط
+    ref.get("history").put({ men:{}, women:{} });
+  }
+
+  function resetBranchCallsAndCurrent(ref){
+    // نفس زر "تصفير النداءات + الرقم الحالي" (بدون مساس بباقي الإعدادات)
+    resetCallsOnly(ref);
+    ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
+  }
+
+  function resetDailyStats(ref, dateStr){
+    ref.get("stats").put({ date: dateStr, men:0, women:0, total:0, ts: Date.now() });
+  }
+
+  async function ensureDaily(ref){
+    const today = localYMD();
+    const s = await new Promise(res=> ref.get("stats").once(res));
+    const settings = await getSettings(ref);
+    const auto = !!settings?.autoDailyReset;
+
+    // لو أول مرة أو يوم جديد: ابدأ إحصائيات اليوم
+    if(!s || s.date !== today){
+      resetDailyStats(ref, today);
+      // لو مفعل: صفّر النداءات + الرقم الحالي تلقائياً
+      if(auto){
+        resetBranchCallsAndCurrent(ref);
+      }
+    }
+  }
+
+  function startDailyWatcher(ref){
+    // تحقق كل دقيقة لتفعيل التصفير عند تبدّل اليوم
+    ensureDaily(ref);
+    setInterval(()=>ensureDaily(ref), 60*1000);
+  }
+
+  async function bumpStats(ref, gender){
+    const today = localYMD();
+    const cur = await new Promise(res=> ref.get("stats").once(res));
+    if(!cur || cur.date !== today){
+      resetDailyStats(ref, today);
+    }
+    const s = await new Promise(res=> ref.get("stats").once(res));
+    const men = (s?.men||0) + (gender==="men"?1:0);
+    const women = (s?.women||0) + (gender==="women"?1:0);
+    const total = (s?.total||0) + 1;
+    ref.get("stats").put({ date: today, men, women, total, ts: Date.now() });
+  }
+  // ===== نهاية يوم/إحصائيات =====
+
 
   function ensure(ref){
     ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults());
@@ -121,6 +186,7 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
+    startDailyWatcher(ref);
 
     
 
@@ -135,9 +201,21 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
       $("#instituteName").value = s.instituteName || "";
       $("#historyLimit").value = s.historyLimit || 15;
       $("#tickerText").value = s.tickerText || "";
+      const adr = $("#autoDailyReset"); if(adr) adr.checked = !!s.autoDailyReset;
     });
 
     ref.get("note").on((n)=>{ if(n) $("#adminNote").value = n.text || ""; });
+
+    // إحصائيات اليوم
+    ref.get("stats").on((st)=>{
+      if(!st) return;
+      const d = $("#statsDate"); const m = $("#statsMen"); const w = $("#statsWomen"); const t = $("#statsTotal");
+      if(d) d.textContent = st.date || localYMD();
+      if(m) m.textContent = st.men ?? 0;
+      if(w) w.textContent = st.women ?? 0;
+      if(t) t.textContent = st.total ?? ((st.men||0)+(st.women||0));
+    });
+
 
     ref.get("centerImage").on((img)=>{
       const holder = $("#imgHolder");
@@ -326,6 +404,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
         instituteName: ($("#instituteName").value || "").trim() || "معهد السلامة المرورية",
         historyLimit: Math.max(3, Math.min(60, parseInt($("#historyLimit").value || "15",10))),
         tickerText: ($("#tickerText").value || "").trim() || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح"
+        autoDailyReset: !!($("#autoDailyReset") && $("#autoDailyReset").checked),
       });
       say("تم حفظ الإعدادات ✅");
     };
@@ -462,6 +541,7 @@ ref.get("results").put({});
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
+    startDailyWatcher(ref);
 
     
 
@@ -597,6 +677,8 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
   // 2) تحديث الرقم الحالي
   ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
+  // 3) تحديث إحصائيات اليوم
+  bumpStats(ref, gender);
   // تحديث "التالي" للموظف إذا كان ضمن نطاقه
       const ov2 = parseOverrideRange();
       const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
@@ -657,6 +739,7 @@ $("#requestNext").onclick = async ()=>{
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
+    startDailyWatcher(ref);
 
     
 
