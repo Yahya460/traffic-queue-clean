@@ -132,3 +132,36 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 #staffList > * {
   break-inside: avoid;
 }
+/* حاوية عمود إدارة الموظفين */
+.staff-container {
+  max-height: 75vh;          /* يمنع التمدد الزائد */
+  overflow-y: auto;          /* سكرول داخلي فقط */
+  padding-right: 6px;
+}
+
+/* قائمة الموظفين: عمودين متوازيين */
+#staffList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 10px;
+  align-items: start;
+}
+
+/* كرت الموظف */
+#staffList .staff-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* منع أي تداخل */
+#staffList,
+#staffList * {
+  min-width: 0;
+}
+
+/* للجوال: يرجع عمود واحد */
+@media (max-width: 900px) {
+  #staffList {
+    grid-template-columns: 1fr;
+  }
+}
