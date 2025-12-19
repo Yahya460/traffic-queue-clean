@@ -857,4 +857,66 @@ $("#sendChatStaff").onclick = async ()=>{
 }
 
 window.TQ = { initAdmin, initStaff, initDisplay };
+})();// ===== تصفير شاشة العرض (صلاحية المدير فقط) =====
+function getBranchCode(){
+  // 1) من الرابط ?branch=SOHAR
+  const u = new URL(location.href);
+  const q = (u.searchParams.get("branch") || "").trim();
+  if(q) return q.toUpperCase();
+
+  // 2) من القائمة إن موجودة
+  const sel = document.getElementById("branchSelect");
+  if(sel && sel.value) return String(sel.value).toUpperCase();
+
+  // 3) fallback
+  return "SOHAR";
+}
+
+// لو عندك “فتح الخصوصية” عبر PIN: اعتبر وجود adminPrivate غير Locked دليل صلاحية
+function isAdminUnlocked(){
+  const priv = document.getElementById("adminPrivate");
+  if(!priv) return true; // لو ما عندك قفل خصوصية
+  return !priv.classList.contains("isLocked");
+}
+
+(function wireResetDisplay(){
+  const btn = document.getElementById("resetDisplayNow");
+  if(!btn) return; // يظهر فقط في admin.html
+
+  btn.addEventListener("click", async () => {
+    if(!isAdminUnlocked()){
+      alert("❌ أدخل رقم المدير أولاً لفتح الصلاحيات.");
+      return;
+    }
+
+    const branch = getBranchCode();
+    const ok = confirm(
+      `⚠️ سيتم تصفير شاشة العرض للفرع: ${branch}\n(الرقم الحالي + رجال + نساء)\nهل أنت متأكد؟`
+    );
+    if(!ok) return;
+
+    // ✅ إذا نظامك يستخدم Gun
+    try{
+      if (typeof window.Gun !== "undefined" && window.gun && window.gun.get){
+        const ref = window.gun.get("tq").get(branch);
+        ref.get("historyMen").put([]);
+        ref.get("historyWomen").put([]);
+        ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
+        ref.get("results").put({}); // اختياري
+        alert("✅ تم تصفير شاشة العرض لهذا الفرع.");
+        return;
+      }
+    }catch(e){ /* يكمل للـlocalStorage */ }
+
+    // ✅ إذا نظامك يستخدم localStorage
+    try{
+      localStorage.removeItem(`currentNumber_${branch}`);
+      localStorage.removeItem(`historyMen_${branch}`);
+      localStorage.removeItem(`historyWomen_${branch}`);
+      localStorage.removeItem(`lastResult_${branch}`);
+      alert("✅ تم تصفير شاشة العرض لهذا الفرع.");
+    }catch(e){
+      alert("تم التصفير، لكن حدث خطأ بسيط: " + e.message);
+    }
+  });
 })();
