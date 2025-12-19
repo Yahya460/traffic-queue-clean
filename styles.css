@@ -165,3 +165,27 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
     grid-template-columns: 1fr;
   }
 }
+/* ===== تنظيم قائمة الموظفين في عمودين ===== */
+
+/* نخلي قائمة الموظفين سكرول داخلي */
+#staffList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-height: 75vh;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+/* كرت الموظف */
+#staffList > div {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* للجوال: عمود واحد */
+@media (max-width: 900px) {
+  #staffList {
+    grid-template-columns: 1fr;
+  }
+}
