@@ -125,7 +125,7 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
     
 
     wireBranchSelect();
-const bs=$("#branchSelect"); if(bs) bs.value=b;
+$("#branchValue").value = b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
@@ -417,7 +417,7 @@ ref.get("results").put({});
     
 
     wireBranchSelect();
-const bs=$("#branchSelect"); if(bs) bs.value=b;
+$("#branchValue").value = b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
