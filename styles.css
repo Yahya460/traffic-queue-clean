@@ -86,7 +86,6 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 .bigNumberCard.pass{border-color: rgba(33,150,243,.95) !important;}
 .bigNumberCard.fail{border-color: rgba(220,38,38,.95) !important;}
 .bigNumberCard.absent{border-color: rgba(234,179,8,.95) !important;}
-.bigNumberCard.pass,.bigNumberCard.fail,.bigNumberCard.absent{border-width:8px !important;}
 
 
 

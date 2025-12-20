@@ -65,8 +65,7 @@
           </select>
           <div class="btns"><button class="primary" id="callNext">نداء</button>
           <button class="btn" id="requestNext">طلب التالي</button>
-          <button class="btn success" id="passBtn">ناجح</button>
-          <button class="btn danger" id="failBtn">راسب</button></div>
+</div>
           <small class="help" style="margin-top:10px">الملاحظة من صلاحيات المدير فقط ✅</small>
         </div>
       </div>
@@ -74,7 +73,12 @@
       <div class="card">
         <div class="hd">آخر رقم (للتأكد)</div>
         <div class="bd" style="text-align:center">
-          <div class="bigNumberCard"><p class="bigNumber" id="currentNum">--</p></div>
+          <div class="bigNumberCard" id="lastNumCard"><p class="bigNumber" id="currentNum">--</p></div>
+          <div class="btns" style="margin-top:10px;justify-content:center">
+            <button class="btn success" id="passBtn">ناجح</button>
+            <button class="btn warn" id="absentBtn">غياب</button>
+            <button class="btn danger" id="failBtn">راسب</button>
+          </div>
           <small class="help">شاشة العرض هي الشاشة الرسمية.</small>
         </div>
       </div>
@@ -100,24 +104,25 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=21"></script>
-  <script>window.TQ.initStaff();</script>
+  <script src="./app.js?v=fix-20251220-1"></script>
+  <script>window.TQ && window.TQ.initStaff ? window.TQ.initStaff() : (window.initStaff && window.initStaff())</script>
 
-<script>
-  function toggleFullscreen(){
-    try{
-      if(!document.fullscreenElement){
-        (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
-      }else{
-        (document.exitFullscreen||document.webkitExitFullscreen).call(document);
-      }
-    }catch(e){}
-  }
-  document.addEventListener("DOMContentLoaded", ()=>{
-    const b=document.getElementById("fsBtn");
-    if(b) b.onclick = toggleFullscreen;
-  });
-</script>
+  <script>
+    function toggleFullscreen(){
+      try{
+        if(!document.fullscreenElement){
+          (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen)
+            .call(document.documentElement);
+        }else{
+          (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+        }
+      }catch(e){}
+    }
+    document.addEventListener("DOMContentLoaded", ()=>{
+      const b=document.getElementById("fsBtn");
+      if(b) b.onclick = toggleFullscreen;
+    });
+  </script>
 
 </body>
 </html>

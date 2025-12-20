@@ -94,28 +94,7 @@
         </div>
       </div>
 
-      
-
       <div class="card">
-        <div class="hd">إحصائيات اليوم (هذا الفرع)</div>
-        <div class="bd">
-          <div class="hint" style="line-height:1.9">
-            التاريخ: <b id="statsDate">—</b><br>
-            الإجمالي: <b id="statsTotal">0</b><br>
-            الرجال: <b id="statsMen">0</b><br>
-            النساء: <b id="statsWomen">0</b><br>
-            النجاح: <b id="statsSuccess">0</b><br>
-            الغياب: <b id="statsAbsent">0</b><br>
-            الرسوب: <b id="statsFail">0</b>
-          </div>
-          <div class="btns" style="margin-top:10px">
-            <button class="warn" id="resetStats">تصفير الإحصائيات</button>
-          </div>
-          <small class="help">ملاحظة: التصفير يحتاج رقم المدير.</small>
-        </div>
-      </div>
-
-<div class="card">
         <div class="hd">إدارة الموظفين</div>
         <div class="bd">
           <label>اسم المستخدم الجديد</label>
@@ -166,26 +145,25 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=21"></script>
-  <script>window.TQ.initAdmin();</script>
+  <script src="./app.js?v=fix-20251220-1"></script>
+  <script>window.TQ && window.TQ.initAdmin ? window.TQ.initAdmin() : (window.initAdmin && window.initAdmin())</script>
 
-<script>
-  function toggleFullscreen(){
-    try{
-      if(!document.fullscreenElement){
-        (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
-      }else{
-        (document.exitFullscreen||document.webkitExitFullscreen).call(document);
-      }
-    }catch(e){}
-  }
-  document.addEventListener("DOMContentLoaded", ()=>{
-    const b=document.getElementById("fsBtn");
-    if(b) b.onclick = toggleFullscreen;
-  });
-</script>
+  <script>
+    function toggleFullscreen(){
+      try{
+        if(!document.fullscreenElement){
+          (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen)
+            .call(document.documentElement);
+        }else{
+          (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+        }
+      }catch(e){}
+    }
+    document.addEventListener("DOMContentLoaded", ()=>{
+      const b=document.getElementById("fsBtn");
+      if(b) b.onclick = toggleFullscreen;
+    });
+  </script>
 
 </body>
-</html><button id="btnResetDisplay" class="btn-danger">
-  تصفير شاشة العرض (هذا الفرع)
-</button>
+</html>
