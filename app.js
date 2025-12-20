@@ -6,13 +6,14 @@
     const enc = new TextEncoder().encode(text);
     const buf = await crypto.subtle.digest("SHA-256", enc);
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  
+  }
+
   const todayKey = ()=>{
-    const d=new Date();
-    const pad=(n)=>String(n).padStart(2,'0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const d = new Date();
+    const p = (n)=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
   };
-}
+
 
   function beep(kind="men"){
     try{
@@ -73,30 +74,21 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
       note:{ text:"", staff:"", ts:0 },
       history:{ men:{}, women:{} },
       centerImage:{ dataUrl:"", name:"", ts:0 },
+      stats:{ date: todayKey(), total:0, men:0, women:0, pass:0, absent:0, fail:0 },
       auth:{ adminHash:"" },
-      staffUsers:{},
-      stats:{ date:(new Date()).toISOString().slice(0,10), total:0, men:0, women:0, success:0, absent:0, fail:0 }
+      staffUsers:{}
     };
   }
 
   function ensure(ref){
-    const def = defaults();
     ref.once((d)=>{
-      // إنشاء البيانات لأول مرة فقط
-      if(!d || !d.settings){
-        ref.put(def);
-        return;
+      if(!d || !d.settings) ref.put(defaults());
+      // تأكد من وجود الإحصائيات (قديمة/جديدة)
+      if(!d || !d.stats){
+        ref.get("stats").put({ date: todayKey(), total:0, men:0, women:0, pass:0, absent:0, fail:0 });
       }
-      // التأكد من وجود العقد الأساسية بدون تصفير
-      ref.get("settings").once(v=>{ if(!v) ref.get("settings").put(def.settings); });
-      ref.get("current").once(v=>{ if(!v) ref.get("current").put(def.current); });
-      ref.get("note").once(v=>{ if(!v) ref.get("note").put(def.note); });
-      ref.get("history").once(v=>{ if(!v) ref.get("history").put(def.history); });
-      ref.get("centerImage").once(v=>{ if(!v) ref.get("centerImage").put(def.centerImage); });
-      ref.get("auth").once(v=>{ if(!v) ref.get("auth").put(def.auth); });
-      ref.get("staffUsers").once(v=>{ if(!v) ref.get("staffUsers").put(def.staffUsers); });
-      ref.get("chat").once(v=>{ if(!v) ref.get("chat").put({ private:{} }); });
-      ref.get("stats").once(v=>{ if(!v) ref.get("stats").put(def.stats); });
+      // تأكد من وجود هيكل السجل
+      if(!d || !d.history) ref.get("history").put({ men:{}, women:{} });
     });
   }
 
@@ -140,6 +132,22 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
+
+    // إحصائيات اليوم
+    ref.get("stats").on((st)=>{
+      st = st || { date: todayKey(), total:0, men:0, women:0, pass:0, absent:0, fail:0 };
+      const tk = todayKey();
+      if(st.date !== tk) st = { date: tk, total:0, men:0, women:0, pass:0, absent:0, fail:0 };
+      const setTxt = (id,val)=>{ const el=$(id); if(el) el.textContent = String(val??0); };
+      setTxt("#statsDate", st.date || tk);
+      setTxt("#statsTotal", st.total||0);
+      setTxt("#statsMen", st.men||0);
+      setTxt("#statsWomen", st.women||0);
+      setTxt("#statsPass", st.pass||0);
+      setTxt("#statsAbsent", st.absent||0);
+      setTxt("#statsFail", st.fail||0);
+    });
+
 
     
 
@@ -439,6 +447,16 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       say("تم تصفير نداءات النساء ✅");
     };
 
+    $("#resetStats") && ($("#resetStats").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      if(!confirm("أكيد تريد تصفير الإحصائيات لليوم؟")) return;
+      ref.get("stats").put({ date: todayKey(), total:0, men:0, women:0, pass:0, absent:0, fail:0 });
+      say("تم تصفير الإحصائيات ✅");
+    });
+
+
     $("#resetCallsBranch").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
@@ -454,52 +472,14 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-      if(!confirm("أكيد تريد تصفير النظام بالكامل؟")) return;
-      ref.put(defaults());
-// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
-ref.get("historyMen").put([]);
-ref.get("historyWomen").put([]);
-ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
-ref.get("results").put({});
-      say("تم تصفير النظام ✅");
+      if(!confirm("أكيد تريد تصفير كامل (النداءات + الرقم + النتائج + الإحصائيات) لهذا الفرع؟")) return;
+      await clearBucket("men");
+      await clearBucket("women");
+      resetCurrent();
+      ref.get("results").put({});
+      ref.get("stats").put({ date: todayKey(), total:0, men:0, women:0, pass:0, absent:0, fail:0 });
+      say("تم التصفير الكامل ✅");
     };
-
-  // إحصائيات اليوم (تحديث مباشر)
-  const statsEls = {
-    date: $("#statsDate"),
-    total: $("#statsTotal"),
-    men: $("#statsMen"),
-    women: $("#statsWomen"),
-    success: $("#statsSuccess"),
-    absent: $("#statsAbsent"),
-    fail: $("#statsFail"),
-  };
-  ref.get("stats").on((st)=>{
-    const tk = todayKey();
-    st = st || { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
-    if(statsEls.date) statsEls.date.textContent = st.date || tk;
-    if(statsEls.total) statsEls.total.textContent = String(st.total||0);
-    if(statsEls.men) statsEls.men.textContent = String(st.men||0);
-    if(statsEls.women) statsEls.women.textContent = String(st.women||0);
-    if(statsEls.success) statsEls.success.textContent = String(st.success||0);
-    if(statsEls.absent) statsEls.absent.textContent = String(st.absent||0);
-    if(statsEls.fail) statsEls.fail.textContent = String(st.fail||0);
-  });
-
-  // زر تصفير الإحصائيات
-  const resetStatsBtn = $("#resetStats");
-  if(resetStatsBtn){
-    resetStatsBtn.onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4) return;
-      const ok = await requireAdminFn(pin);
-      if(!ok.ok) return;
-      if(!confirm("تصفير الإحصائيات اليومية لهذا الفرع؟")) return;
-      const tk = todayKey();
-      ref.get("stats").put({ date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 });
-      say("تم تصفير الإحصائيات ✅");
-    };
-  }
   }
 
   // ========= Staff =========
@@ -634,7 +614,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
   if(prev && prev.number && prev.number !== "--" && (prev.gender === "men" || prev.gender === "women")){
     const bucketPrev = (prev.gender === "women") ? "women" : "men";
     const key = String(now); // مفتاح واضح
-    ref.get("history").get(bucketPrev).get(key).put({ number: prev.number, staff: prev.staff || "", ts: prev.ts || now, result: prev.result || "", resultAt: prev.resultAt || 0, resultBy: prev.resultBy || "" });
+    ref.get("history").get(bucketPrev).get(key).put({ number: prev.number, staff: prev.staff || "", ts: now, result: prev.result||"", resultAt: prev.resultAt||0, resultBy: prev.resultBy||"" });
 
     // تقليم السجل بعد لحظات لضمان وصول البيانات
     setTimeout(()=>{
@@ -653,16 +633,15 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
   // 2) تحديث الرقم الحالي
   ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
-  // 3) تحديث الإحصائيات اليومية (إجمالي/رجال/نساء)
+
+  // تحديث إحصائيات اليوم (حسب الفرع)
   ref.get("stats").once((st)=>{
+    st = st || { date: todayKey(), total:0, men:0, women:0, pass:0, absent:0, fail:0 };
     const tk = todayKey();
-    st = st || { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
-    if(st.date !== tk){
-      st = { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
-    }
+    if(st.date !== tk) st = { date: tk, total:0, men:0, women:0, pass:0, absent:0, fail:0 };
     st.total = (st.total||0) + 1;
-    if(gender === "men") st.men = (st.men||0) + 1;
-    if(gender === "women") st.women = (st.women||0) + 1;
+    if(gender==="men") st.men = (st.men||0) + 1;
+    if(gender==="women") st.women = (st.women||0) + 1;
     ref.get("stats").put(st);
   });
 
@@ -745,8 +724,9 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
       const card = document.querySelector(".bigNumberCard");
       if(card){
-        card.classList.remove("pass","fail");
+        card.classList.remove("pass","fail","absent");
         if(c.result==="pass") card.classList.add("pass");
+        else if(c.result==="absent") card.classList.add("absent");
         else if(c.result==="fail") card.classList.add("fail");
       }
       const numKey = String(c.number||"").trim();
@@ -756,6 +736,7 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
           if(!card2) return;
           if(card2.classList.contains("pass") || card2.classList.contains("fail")) return;
           if(r?.result==="pass") card2.classList.add("pass");
+          else if(r?.result==="absent") card2.classList.add("absent");
           else if(r?.result==="fail") card2.classList.add("fail");
         });
       }
@@ -765,6 +746,56 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
         if(c.gender) beep(c.gender);
       }
     });
+
+    // أزرار النتيجة (ناجح/غياب/راسب) — تغيّر إطار آخر رقم + تحفظ في السجل + تحدث الإحصائيات
+    async function setResult(kind){
+      const auth = await requireStaff();
+      if(!auth) return;
+      const username = auth.u;
+      const cur = await new Promise(res=> ref.get("current").once(res));
+      const numKey = String(cur?.number || "").trim();
+      if(!numKey || numKey==="--"){ say("لا يوجد رقم حالي"); return; }
+      const gender = cur?.gender || "";
+      const now = Date.now();
+
+      // نتيجة سابقة (لتعديل الإحصائيات لو تغيّرت)
+      const prevRes = await new Promise(res=> ref.get("results").get(numKey).get("result").once(res));
+
+      // حفظ النتيجة
+      ref.get("results").get(numKey).put({ result: kind, by: username, ts: now, gender });
+      ref.get("current").put({ result: kind, resultAt: now, resultBy: username });
+
+      // تحديث الإحصائيات اليومية (نجاح/غياب/رسوب)
+      ref.get("stats").once((st)=>{
+        st = st || { date: todayKey(), total:0, men:0, women:0, pass:0, absent:0, fail:0 };
+        const tk = todayKey();
+        if(st.date !== tk) st = { date: tk, total:0, men:0, women:0, pass:0, absent:0, fail:0 };
+
+        const dec = (k)=>{ st[k] = Math.max(0, (st[k]||0) - 1); };
+        const inc = (k)=>{ st[k] = (st[k]||0) + 1; };
+
+        // لو كانت موجودة نتيجة سابقة وعدّلها الموظف
+        if(prevRes==="pass") dec("pass");
+        else if(prevRes==="absent") dec("absent");
+        else if(prevRes==="fail") dec("fail");
+
+        if(kind==="pass") inc("pass");
+        else if(kind==="absent") inc("absent");
+        else if(kind==="fail") inc("fail");
+
+        ref.get("stats").put(st);
+      });
+
+      say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="absent" ? "تم تسجيل: غياب ⚠️" : "تم تسجيل: راسب ⛔"));
+    }
+
+    const passBtn = $("#passBtn");
+    if(passBtn) passBtn.onclick = ()=> setResult("pass");
+    const absentBtn = $("#absentBtn");
+    if(absentBtn) absentBtn.onclick = ()=> setResult("absent");
+    const failBtn = $("#failBtn");
+    if(failBtn) failBtn.onclick = ()=> setResult("fail");
+
 
     ref.get("note").on((n)=>{
       const span = $("#noteSpan");
@@ -909,101 +940,15 @@ async function initChatAdmin(ref, requireAdminFn){
     const u = (selEl.value || "").trim();
     if(!u) return;
     if(!confirm(`مسح الدردشة مع ${u} ؟`)) return;
-    // مسح فعلي لكل الرسائل (GUN لا يحذف مفاتيح map بمجرد استبدال الكائن)
-    ref.get("chat").get("private").get(u).get("messages").once((obj)=>{
-      if(obj){
-        Object.keys(obj).filter(k=>k!=="_").forEach(k=>{
-          ref.get("chat").get("private").get(u).get("messages").get(k).put(null);
-        });
-      }
-      // إعادة تحميل
-      setTimeout(()=> attach(u), 250);
-    });
+    const msgRef = ref.get("chat").get("private").get(u).get("messages");
+    msgRef.map().once((v,k)=>{ if(k && k!=="_") msgRef.get(k).put(null); });
+    ref.get("chat").get("private").get(u).put({ ts: Date.now() });
+    setTimeout(()=> attach(u), 250);
   };
 
   attach("");
 }
 
-
-// ---------------- نتائج (ناجح/غياب/راسب) وحفظها مع السجل ----------------
-function setLastCardClass(cls){
-  const card = document.getElementById("lastCard") || document.querySelector(".bigNumberCard");
-  if(!card) return;
-  card.classList.remove("pass","fail","absent");
-  if(cls) card.classList.add(cls);
-}
-
-async function setResult(kind){
-  const auth = await requireStaff();
-  if(!auth) return;
-  const username = auth.u;
-
-  const cur = await new Promise(res=> ref.get("current").once(res));
-  if(!cur || !cur.number || cur.number === "--"){ say("لا يوجد رقم حالي"); return; }
-
-  const prevKind = (cur.result || "");
-  if(prevKind === kind){
-    if(kind === "success") setLastCardClass("pass");
-    else if(kind === "fail") setLastCardClass("fail");
-    else setLastCardClass("absent");
-    say("تم ✅");
-    return;
-  }
-
-  const nowTs = Date.now();
-
-  // تحديث الإحصائيات (نجاح/غياب/رسوب) مع معالجة تغيير النتيجة
-  ref.get("stats").once((st)=>{
-    const tk = todayKey();
-    st = st || { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
-    if(st.date !== tk){
-      st = { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
-    }
-
-    const dec = (k)=>{
-      if(k === "success") st.success = Math.max(0,(st.success||0)-1);
-      else if(k === "absent") st.absent = Math.max(0,(st.absent||0)-1);
-      else if(k === "fail") st.fail = Math.max(0,(st.fail||0)-1);
-    };
-    const inc = (k)=>{
-      if(k === "success") st.success = (st.success||0)+1;
-      else if(k === "absent") st.absent = (st.absent||0)+1;
-      else if(k === "fail") st.fail = (st.fail||0)+1;
-    };
-
-    if(prevKind) dec(prevKind);
-    inc(kind);
-
-    ref.get("stats").put(st);
-  });
-
-  // تحديث الرقم الحالي (سيُحفظ في السجل لاحقًا مع النتيجة)
-  ref.get("current").put({ result: kind, resultAt: nowTs, resultBy: username });
-
-  if(kind === "success") setLastCardClass("pass");
-  else if(kind === "fail") setLastCardClass("fail");
-  else setLastCardClass("absent");
-
-  say("تم تحديث النتيجة ✅");
-}
-
-const passBtn = document.getElementById("passBtn");
-const failBtn = document.getElementById("failBtn");
-const absentBtn = document.getElementById("absentBtn");
-
-if(passBtn) passBtn.onclick = ()=> setResult("success");
-if(failBtn) failBtn.onclick = ()=> setResult("fail");
-if(absentBtn) absentBtn.onclick = ()=> setResult("absent");
-
-ref.get("current").on((c)=>{
-  const r = c?.result || "";
-  if(r === "success") setLastCardClass("pass");
-  else if(r === "fail") setLastCardClass("fail");
-  else if(r === "absent") setLastCardClass("absent");
-  else setLastCardClass("");
-});
-
-// ------------------------------------------------------------------------
 async function initChatStaff(ref, requireStaffFn){
   const listEl = $("#chatListStaff");
   if(!listEl) return;
@@ -1042,7 +987,9 @@ async function initChatStaff(ref, requireStaffFn){
 
   $("#clearChatStaff").onclick = async ()=>{
   const username = await requireStaffFn();
-  if(!username) return;
+  const msgRef = ref.get("chat").get("private").get(username).get("messages");
+  msgRef.map().once((v,k)=>{ if(k && k!=="_") msgRef.get(k).put(null); });
+  ref.get("chat").get("private").get(username).put({ ts: Date.now() });
   if(!confirm("مسح الدردشة بينك وبين المدير لهذا الفرع؟")) return;
   ref.get("chat").get("private").get(username).put({ messages: {} });
   setTimeout(()=> location.reload(), 250);
