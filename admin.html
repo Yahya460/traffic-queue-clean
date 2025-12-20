@@ -145,25 +145,26 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=fix-20251220-1"></script>
-  <script>window.TQ && window.TQ.initAdmin ? window.TQ.initAdmin() : (window.initAdmin && window.initAdmin())</script>
+  <script src="./app.js?v=21"></script>
+  <script>window.TQ.initAdmin();</script>
 
-  <script>
-    function toggleFullscreen(){
-      try{
-        if(!document.fullscreenElement){
-          (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen)
-            .call(document.documentElement);
-        }else{
-          (document.exitFullscreen||document.webkitExitFullscreen).call(document);
-        }
-      }catch(e){}
-    }
-    document.addEventListener("DOMContentLoaded", ()=>{
-      const b=document.getElementById("fsBtn");
-      if(b) b.onclick = toggleFullscreen;
-    });
-  </script>
+<script>
+  function toggleFullscreen(){
+    try{
+      if(!document.fullscreenElement){
+        (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+      }else{
+        (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+      }
+    }catch(e){}
+  }
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const b=document.getElementById("fsBtn");
+    if(b) b.onclick = toggleFullscreen;
+  });
+</script>
 
 </body>
-</html>
+</html><button id="btnResetDisplay" class="btn-danger">
+  تصفير شاشة العرض (هذا الفرع)
+</button>

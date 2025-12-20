@@ -710,9 +710,10 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
       const card = document.querySelector(".bigNumberCard");
       if(card){
-        card.classList.remove("pass","fail");
+        card.classList.remove("pass","fail","absent");
         if(c.result==="pass") card.classList.add("pass");
         else if(c.result==="fail") card.classList.add("fail");
+        else if(c.result==="absent") card.classList.add("absent");
       }
       const numKey = String(c.number||"").trim();
       if(numKey){
