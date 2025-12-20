@@ -663,14 +663,53 @@ $("#requestNext").onclick = async ()=>{
     async function setLastResult(kind){
       const auth = await requireStaff();
       if(!auth) return;
-      const nowCur = await new Promise(res=> ref.get("current").once(res));
-      const curNum = (nowCur && (nowCur.number ?? nowCur.num)) ? String(nowCur.number ?? nowCur.num) : "--";
-      if(!curNum || curNum==="--"){
-        say("لا يوجد رقم حالي لتسجيل النتيجة");
+      const staffData = auth.data || {};
+
+      // الرقم المختار للتقييم (إن وجد) وإلا رقم الحالي
+      const pickEl = $("#gradeNum");
+      const picked = pickEl ? (pickEl.value || "").trim() : "";
+      const cur = await new Promise(res=> ref.get("current").once(res));
+      const num = (picked || String(cur?.number||"")).trim();
+
+      if(!num){
+        say("اختر رقم للتقييم أو نادِ رقم أولاً");
         return;
       }
-      // تحديث نتيجة الرقم الحالي فقط
-      ref.get("current").put({ result: kind, resultAt: Date.now(), resultBy: auth.u || "" });
+
+      // النطاق (من/إلى)
+      const ov = parseOverrideRange();
+      const n = parseInt(num, 10);
+      const rf = ov ? ov.from : staffData?.rangeFrom;
+      const rt = ov ? ov.to : staffData?.rangeTo;
+      if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
+        const from = parseInt(rf,10), to = parseInt(rt,10);
+        if(!Number.isFinite(n) || n < from || n > to){
+          say(`هذا الموظف مسموح له بالأرقام من ${from} إلى ${to} فقط`);
+          return;
+        }
+        // تحديث قائمة الأرقام (gradeNum) لتكون ضمن النطاق
+        if(pickEl){
+          const curVal = pickEl.value;
+          pickEl.innerHTML = `<option value="">اختر رقم…</option>` + Array.from({length:(to-from+1)},(_,i)=>{
+            const v = String(from+i);
+            return `<option value="${v}">${v}</option>`;
+          }).join("");
+          if(curVal && n>=from && n<=to) pickEl.value = curVal;
+          else if(num) pickEl.value = String(n);
+        }
+      }
+
+      const gender = ($("#gender")?.value || "").trim(); // حسب اختيار الموظف
+      const now = Date.now();
+
+      // 1) خزّن النتيجة لهذا الرقم لتلوين المربعات في شاشة العرض
+      ref.get("results").get(String(n)).put({ result: kind, gender, ts: now, by: auth.u || "" });
+
+      // 2) لو الرقم هو الحالي، حدّث current أيضًا (للكرت الكبير)
+      if(cur && String(cur.number||"").trim() === String(n)){
+        ref.get("current").put({ ...cur, result: kind, resultAt: now, resultBy: auth.u || "" });
+      }
+
       say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
     }
 
@@ -720,9 +759,10 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
         ref.get("results").get(numKey).once((r)=>{
           const card2 = document.querySelector(".bigNumberCard");
           if(!card2) return;
-          if(card2.classList.contains("pass") || card2.classList.contains("fail")) return;
+          if(card2.classList.contains("pass") || card2.classList.contains("fail") || card2.classList.contains("absent")) return;
           if(r?.result==="pass") card2.classList.add("pass");
           else if(r?.result==="fail") card2.classList.add("fail");
+          else if(r?.result==="absent") card2.classList.add("absent");
         });
       }
       $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
