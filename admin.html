@@ -4,56 +4,55 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>لوحة المدير - نظام الدور</title>
-  <link rel="stylesheet" href="./styles.css?v=gold2"/>
+  <link rel="stylesheet" href="./styles.css?v=21"/>
 </head>
 <body>
   <div class="container">
     <div class="top">
       <h1>لوحة المدير</h1>
-      <p>إعدادات النظام • رقم المدير • إدارة الموظفين • الإحصائيات • الدردشة</p>
+      <p>إعدادات + رقم المدير + إدارة الموظفين + الصورة + الملاحظة</p>
     </div>
 
     <div class="subbar">
       <button class="btn mini" id="fsBtn" title="ملء الشاشة">⛶ ملء الشاشة</button>
       <div class="pill">الحالة: <b id="conn">غير متصل…</b></div>
-      <div class="pill" id="msg">جاهز</div>
+      <div class="pill"></div>
     </div>
 
     <div class="cardRow">
       <div class="card">
         <div class="hd">الفرع</div>
         <div class="bd">
-          <label>اختر الفرع</label>
+          <label>الفرع</label>
           <select id="branchSelect">
-            <option value="SOHAR">Sohar</option>
-            <option value="MUSCAT">Muscat</option>
-            <option value="NIZWA">Nizwa</option>
-            <option value="IBRI">Ibri</option>
-            <option value="IBRA">Ibra</option>
-            <option value="SUR">Sur</option>
-            <option value="HAIMA">Haima</option>
-            <option value="SALALAH">Salalah</option>
-            <option value="BURAIMI">Buraimi</option>
-            <option value="MUSANDAM">Musandam</option>
-            <option value="RUSTAQ">Rustaq</option>
+            <option value="SOHAR">1- Sohar</option>
+<option value="MUSCAT">2- Muscat</option>
+<option value="NIZWA">3- Nizwa</option>
+<option value="IBRI">4- Ibri</option>
+<option value="IBRA">5- Ibra</option>
+<option value="SUR">6- Sur</option>
+<option value="HAIMA">7- Haima</option>
+<option value="SALALAH">8- Salalah</option>
+<option value="BURAIMI">9- Buraimi</option>
+<option value="MUSANDAM">10- Musandam</option>
+<option value="RUSTAQ">11- Rustaq</option>
           </select>
-          <div class="btns">
-            <button class="gray" id="setBranch">تغيير الفرع</button>
-          </div>
-          <small class="help">نفس الفرع يجب يكون في شاشة الموظف وشاشة العرض</small>
+          <input id="branchValue" type="hidden" />
+          <div class="btns"><button class="gray" id="setBranch">تغيير الفرع</button></div>
+          <small class="help">انسخ نفس الفرع إلى الموظف وشاشة العرض.</small>
         </div>
       </div>
 
       <div class="card">
         <div class="hd">الحماية (PIN)</div>
         <div class="bd">
-          <label>رقم المدير</label>
-          <input id="adminPin" type="password" placeholder="مثال: 1234"/>
-          <div class="btns" style="margin-top:10px">
+          <div class="pill" id="msg">جاهز</div>
+          <label style="margin-top:10px">رقم المدير (Admin PIN)</label>
+          <input id="adminPin" type="password" placeholder="اكتب رقم تختاره (مثال 1234)"/>
+          <div class="btns">
             <button class="primary" id="saveAdminPin">حفظ رقم المدير</button>
             <button class="danger" id="resetAdminPin">إعادة تعيين رقم المدير</button>
           </div>
-          <small class="help">الرقم يستخدم للحفظ/التصفير/الدردشة</small>
         </div>
       </div>
 
@@ -62,12 +61,8 @@
         <div class="bd">
           <label>اسم الجهة</label>
           <input id="instituteName" placeholder="معهد السلامة المرورية"/>
-          <label style="margin-top:10px">عدد الأرقام المحفوظة</label>
+          <label style="margin-top:10px">عدد الأرقام المحفوظة في السجل</label>
           <input id="historyLimit" type="number" min="3" max="60" value="15"/>
-          <label style="margin-top:10px;display:flex;gap:8px;align-items:center">
-            <input type="checkbox" id="autoDailyReset" style="width:auto;transform:scale(1.1)"/>
-            <span>تصفير تلقائي نهاية اليوم (للنداءات والرقم الحالي)</span>
-          </label>
           <label style="margin-top:10px">النص السفلي</label>
           <input id="tickerText" placeholder="يرجى الالتزام بالهدوء وانتظار دوركم..."/>
           <div class="btns"><button class="primary" id="saveSettings">حفظ الإعدادات</button></div>
@@ -77,36 +72,41 @@
 
     <div class="cardRow" style="margin-top:14px">
       <div class="card">
-        <div class="hd">الملاحظة (لشاشة العرض)</div>
+        <div class="hd">الملاحظة (صلاحية المدير فقط)</div>
         <div class="bd">
           <label>نص الملاحظة</label>
           <textarea id="adminNote" placeholder="مثال: يرجى التوجه لغرفة التجهيز"></textarea>
           <div class="btns">
             <button class="primary" id="saveAdminNote">حفظ الملاحظة</button>
+            <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
+            <button class="danger" id="resetAll">تصفير النظام بالكامل</button>
           </div>
 
-          <div class="splitLine"></div>
-          <div class="hint" style="margin-top:10px;color:#6b7280;font-size:13px">
-            التصفير والإحصائيات يتم على <b>الفرع الحالي</b> فقط.
-          </div>
-
-          <div class="btns" style="margin-top:10px">
-            <button class="warn" id="resetCallsMen">تصفير نداءات الرجال</button>
-            <button class="warn" id="resetCallsWomen">تصفير نداءات النساء</button>
-            <button class="danger" id="resetCallsBranch">تصفير النداءات + الرقم الحالي</button>
-            <button class="danger" id="resetAll">تصفير كامل (النداءات + الرقم + الإحصائيات)</button>
-          </div>
-
-          <div class="splitLine"></div>
-          <div class="hd" style="margin-top:10px">إحصائيات اليوم</div>
-          <div class="hint" style="margin-top:6px;color:#6b7280;font-size:13px;line-height:1.9">
-            التاريخ: <b id="statsDate">—</b><br>
-            الإجمالي: <b id="statsTotal">0</b> | رجال: <b id="statsMen">0</b> | نساء: <b id="statsWomen">0</b><br>
-            النجاح: <b id="statsPass">0</b> | الغياب: <b id="statsAbsent">0</b> | الرسوب: <b id="statsFail">0</b>
-          </div>
-          <div class="btns" style="margin-top:10px">
-            <button class="warn" id="resetStats">تصفير الإحصائيات فقط</button>
-          </div>
+            <div class="splitLine"></div>
+            <div class="hint" style="margin-top:10px;color:#6b7280;font-size:13px">
+              تصفير النداءات يتم على <b>الفرع الحالي</b> فقط (حسب اختيار الفرع بالأعلى).
+            </div>
+            <div class="btns" style="margin-top:10px">
+              <button class="warn" id="resetCallsMen">تصفير نداءات الرجال</button>
+              <button class="warn" id="resetCallsWomen">تصفير نداءات النساء</button>
+              <button class="danger" id="resetCallsBranch">تصفير النداءات + الرقم الحالي</button>
+            
+            <div class="splitLine"></div>
+            <div class="hd" style="margin-top:10px">إحصائيات اليوم</div>
+            <div class="hint" style="margin-top:6px;color:#6b7280;font-size:13px">
+              التاريخ: <b id="statsDate">—</b> |
+              الإجمالي: <b id="statsTotal">0</b> |
+              رجال: <b id="statsMen">0</b> |
+              نساء: <b id="statsWomen">0</b>
+              <br>
+              النجاح: <b id="statsPass">0</b> |
+              الغياب: <b id="statsAbsent">0</b> |
+              الرسوب: <b id="statsFail">0</b>
+            </div>
+            <div class="btns" style="margin-top:10px">
+              <button class="warn" id="resetStats">تصفير الإحصائيات</button>
+            </div>
+</div>
         </div>
       </div>
 
@@ -118,7 +118,7 @@
           <label style="margin-top:10px">رقم الموظف</label>
           <input id="newUserPin" type="password" placeholder="مثال: 4321"/>
           <div class="btns"><button class="primary" id="addStaff">إضافة موظف</button></div>
-          <small class="help">يمكنك حذف الموظف من القائمة بالأسفل.</small>
+          <small class="help">يمكنك حذف أو تغيير الاسم من القائمة بالأسفل.</small>
           <div style="margin-top:12px" id="staffList"></div>
         </div>
       </div>
@@ -134,52 +134,51 @@
           </div>
           <div class="centerImage" id="imgHolder" style="margin-top:10px"></div>
         </div>
-      </div>
-    </div>
-
-    <div class="cardRow" style="margin-top:14px">
-      <div class="card" style="grid-column:1/-1">
-        <div class="hd">دردشة المدير مع الموظفين (للفرع الحالي)</div>
-        <div class="bd">
+      <div class="cardRow" style="margin-top:14px">
+  <div class="card" style="grid-column:1/-1">
+    <div class="hd">دردشة المدير مع الموظفين (للفرع الحالي)</div>
+    <div class="bd">
           <label>اختر الموظف</label>
           <select id="chatUserSelect"><option value="">اختر موظف…</option></select>
           <small class="help">اختر موظف لعرض الدردشة الخاصة معه.</small>
-
+          
           <div id="chatListAdmin" class="chatList"></div>
-
-          <label style="margin-top:10px">اكتب رسالة</label>
-          <input id="chatTextAdmin" placeholder="رسالة للموظفين..." />
-          <div class="btns">
-            <button class="primary" id="sendChatAdmin">إرسال</button>
-            <button class="danger" id="clearChatAdmin">مسح الدردشة</button>
-          </div>
-          <small class="help">الدردشة مرتبطة بالفرع فقط ✅</small>
-        </div>
+      <label style="margin-top:10px">اكتب رسالة</label>
+      <input id="chatTextAdmin" placeholder="رسالة للموظفين..." />
+      <div class="btns">
+        <button class="primary" id="sendChatAdmin">إرسال</button>
+        <button class="danger" id="clearChatAdmin">مسح الدردشة</button>
       </div>
+      <small class="help">الدردشة مرتبطة بالفرع فقط ✅</small>
+    </div>
+  </div>
+</div>
+
+</div>
     </div>
 
     <div class="rights">جميع الحقوق محفوظة — الرقيب أول يحيى آل عبدالسلام</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=gold2"></script>
+  <script src="./app.js?v=20251220-3"></script>
   <script>initAdmin();</script>
 
-  <script>
-    function toggleFullscreen(){
-      try{
-        if(!document.fullscreenElement){
-          (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen)
-            .call(document.documentElement);
-        }else{
-          (document.exitFullscreen||document.webkitExitFullscreen).call(document);
-        }
-      }catch(e){}
-    }
-    document.addEventListener("DOMContentLoaded", ()=>{
-      const b=document.getElementById("fsBtn");
-      if(b) b.onclick = toggleFullscreen;
-    });
-  </script>
+<script>
+  function toggleFullscreen(){
+    try{
+      if(!document.fullscreenElement){
+        (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+      }else{
+        (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+      }
+    }catch(e){}
+  }
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const b=document.getElementById("fsBtn");
+    if(b) b.onclick = toggleFullscreen;
+  });
+</script>
+
 </body>
 </html>
