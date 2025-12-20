@@ -128,9 +128,12 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
 const bs=$("#branchSelect"); if(bs) bs.value=b;
     listenConn(gun, $("#conn"), ref);
 
+    let historyLimit = 15;
+
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
 
     ref.get("settings").on((s)=>{
+      historyLimit = Math.max(3, Math.min(60, parseInt(s?.historyLimit || 15,10)));
       if(!s) return;
       $("#instituteName").value = s.instituteName || "";
       $("#historyLimit").value = s.historyLimit || 15;
@@ -469,9 +472,12 @@ ref.get("results").put({});
 const bs=$("#branchSelect"); if(bs) bs.value=b;
     listenConn(gun, $("#conn"), ref);
 
+    let historyLimit = 15;
+
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
 
-    ref.get("settings").on((s)=>{ if(s?.instituteName) $("#instName").textContent = s.instituteName; });
+    ref.get("settings").on((s)=>{
+      historyLimit = Math.max(3, Math.min(60, parseInt(s?.historyLimit || 15,10))); if(s?.instituteName) $("#instName").textContent = s.instituteName; });
 
     const userSel = $("#username");
     ref.get("staffUsers").on((obj)=>{
@@ -705,6 +711,16 @@ $("#requestNext").onclick = async ()=>{
       // 1) خزّن النتيجة لهذا الرقم لتلوين المربعات في شاشة العرض
       ref.get("results").get(String(n)).put({ result: kind, gender, ts: now, by: auth.u || "" });
 
+      // تلوين فوري لكرت آخر رقم في شاشة الموظف (حتى قبل وصول المزامنة)
+      const lastCard = $("#lastNumCard");
+      if(lastCard){
+        lastCard.classList.remove("pass","fail","absent");
+        if(kind==="pass") lastCard.classList.add("pass");
+        else if(kind==="fail") lastCard.classList.add("fail");
+        else if(kind==="absent") lastCard.classList.add("absent");
+      }
+
+
       // 2) لو الرقم هو الحالي، حدّث current أيضًا (للكرت الكبير)
       if(cur && String(cur.number||"").trim() === String(n)){
         ref.get("current").put({ ...cur, result: kind, resultAt: now, resultBy: auth.u || "" });
@@ -737,7 +753,10 @@ $("#requestNext").onclick = async ()=>{
 $("#branchLabel").textContent = `الفرع: ${b}`;
     listenConn(gun, $("#conn"), ref);
 
+    let historyLimit = 15;
+
     ref.get("settings").on((s)=>{
+      historyLimit = Math.max(3, Math.min(60, parseInt(s?.historyLimit || 15,10)));
       if(s?.instituteName) $("#instName").textContent = s.instituteName;
       $("#tickerText").textContent = s?.tickerText || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح";
     });
@@ -785,33 +804,64 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       if(img?.dataUrl){ holder.src = img.dataUrl; wrap.style.display="block"; }
       else { holder.src=""; wrap.style.display="none"; }
     });
-// قراءة السجل بطريقة map().on لضمان وصول العناصر الفرعية (بدون مشاكل مزامنة)
-function makeBucketRenderer(bucket, target){
-  const store = {};
-  ref.get("history").get(bucket).map().on((val, key)=>{
-    if(!key || key === "_") return;
-    if(!val || val === null){
-      delete store[key];
-    }else{
-      store[key] = val;
+// ===== نتائج التقييم (pass/fail/absent) لتلوين المربعات =====
+    const resultsCache = {};
+    let rerenderMen = ()=>{};
+    let rerenderWomen = ()=>{};
+    const rerenderAll = ()=>{ try{ rerenderMen(); rerenderWomen(); }catch(e){} };
+
+    ref.get("results").map().on((val, key)=>{
+      if(!key || key === "_") return;
+      if(!val || val === null){
+        delete resultsCache[key];
+      }else{
+        const r = val.result;
+        if(r === "pass" || r === "fail" || r === "absent") resultsCache[key] = r;
+        else delete resultsCache[key];
+      }
+      rerenderAll();
+    });
+
+    // قراءة السجل بطريقة map().on لضمان وصول العناصر الفرعية (بدون مشاكل مزامنة)
+    function makeBucketRenderer(bucket, target){
+      const store = {};
+      const render = ()=>{
+        const items = Object.keys(store).map(k=>store[k]).filter(Boolean).map(it=>{
+          const num = it.number ?? it.num ?? it.n ?? it;
+          const ts = it.ts ?? it.time ?? 0;
+          return { num: String(num), ts: ts };
+        }).filter(x=>x.num && x.num !== "--");
+
+        items.sort((a,b)=> (b.ts||0) - (a.ts||0));
+        const limit = (typeof historyLimit === "number" && Number.isFinite(historyLimit)) ? historyLimit : 15;
+        const sliced = items.slice(0, limit);
+
+        target.innerHTML = sliced.map(x=>{
+          const t = x.ts ? formatTime(x.ts) : "";
+          const r = resultsCache[String(x.num)] || "";
+          const cls = (r==="pass"||r==="fail"||r==="absent") ? " " + r : "";
+          return `<div class="tile${cls}"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
+        }).join("") ||
+          `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
+      };
+
+      ref.get("history").get(bucket).map().on((val, key)=>{
+        if(!key || key === "_") return;
+        if(!val || val === null){
+          delete store[key];
+        }else{
+          store[key] = val;
+        }
+        render();
+      });
+
+      // إعادة الرسم عند الطلب (مثلاً عند وصول نتائج جديدة)
+      return render;
     }
-    const keys = Object.keys(store).sort((a,b)=>Number(b)-Number(a));
 
-    const items = keys.map(k => store[k]).filter(Boolean).map(it=>{
-      const num = it.number;
-      const ts  = it.ts || 0;
-      return { num, ts };
-    }).filter(x=>x.num);
-
-    target.innerHTML = items.map(x=>{
-      const t = x.ts ? formatTime(x.ts) : "";
-      return `<div class="tile"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
-    }).join("") ||
-      `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
-  });
-}
-makeBucketRenderer("men", $("#menList"));
-makeBucketRenderer("women", $("#womenList"));  }
+    rerenderMen = makeBucketRenderer("men", $("#menList"));
+    rerenderWomen = makeBucketRenderer("women", $("#womenList"));
+  }
 
   // ========= Chat (Admin <-> Staff) =========
 function formatTime(ts){

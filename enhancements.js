@@ -1,176 +1,149 @@
-/* Enhancements (safe add-on; does not touch login/PIN logic) */
+/* Safe Enhancements (no changes to app.js) */
 (() => {
   const $ = (sel, root=document) => root.querySelector(sel);
 
-  function branch(){
+  // Read branch same way as main app: URL ?branch=XXX or localStorage 'tq_branch'
+  function getBranch(){
     try{
-      const url = new URL(location.href);
-      const b = (url.searchParams.get("branch") || url.searchParams.get("room") || localStorage.getItem("tq_branch") || "SOHAR").toUpperCase();
-      localStorage.setItem("tq_branch", b);
-      return b;
-    }catch(e){ return (localStorage.getItem("tq_branch") || "SOHAR").toUpperCase(); }
+      const u = new URL(location.href);
+      const b = (u.searchParams.get("branch") || "").trim();
+      if(b) { localStorage.setItem("tq_branch", b); return b; }
+    }catch(e){}
+    return (localStorage.getItem("tq_branch") || "SOHAR").trim() || "SOHAR";
   }
 
-  function makeGun(){
-    if(typeof Gun === "undefined") return null;
-    const peers = ["https://gun-manhattan.herokuapp.com/gun","https://try.axe.eco/gun","https://test.era.eco/gun"];
-    return Gun({ peers });
+  // Peers (same spirit as main app). If one fails, others may work.
+  const PEERS = [
+    "https://gun-manhattan.herokuapp.com/gun",
+    "https://test.era.eco/gun"
+  ];
+
+  // Local fallback cache (works even when offline / peers down, but only on same device)
+  const LS_KEY = (b)=>`tq_results_cache_${b}`;
+  function loadCache(b){
+    try{ return JSON.parse(localStorage.getItem(LS_KEY(b)) || "{}"); }catch(e){ return {}; }
+  }
+  function saveCache(b, cache){
+    try{ localStorage.setItem(LS_KEY(b), JSON.stringify(cache)); }catch(e){}
   }
 
-  function refFor(gun, b){ return gun.get("traffic_queue_clean").get(b); }
+  const branch = getBranch();
+  let cache = loadCache(branch);
 
-  function isToday(ts){
-    try{
-      const d = new Date(ts);
-      const n = new Date();
-      return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
-    }catch(e){ return false; }
-  }
-
-  function applyResultClass(el, kind){
+  // Color helpers
+  function applyClass(el, res){
     if(!el) return;
     el.classList.remove("pass","fail","absent");
-    if(kind==="pass") el.classList.add("pass");
-    else if(kind==="fail") el.classList.add("fail");
-    else if(kind==="absent") el.classList.add("absent");
+    if(res === "pass") el.classList.add("pass");
+    else if(res === "fail") el.classList.add("fail");
+    else if(res === "absent") el.classList.add("absent");
   }
 
-  function wireDisplayTiles(ref){
-    const watchers = new Map(); // num -> true
-    function attachForContainer(container){
-      if(!container) return;
-      const tiles = container.querySelectorAll(".tile");
+  function updateTiles(){
+    const lists = [$("#menList"), $("#womenList")].filter(Boolean);
+    for(const list of lists){
+      const tiles = list.querySelectorAll(".tile");
       tiles.forEach(tile=>{
-        const numEl = tile.querySelector(".tileNum");
-        const num = (numEl ? numEl.textContent : "").trim();
+        const num = (tile.querySelector(".tileNum")?.textContent || "").trim();
         if(!num) return;
-        if(watchers.has(num)) return;
-        watchers.set(num, true);
-        ref.get("results").get(String(num)).on((r)=>{
-          applyResultClass(tile, r && r.result);
-        });
+        const res = cache[num];
+        applyClass(tile, res);
       });
     }
-
-    const men = $("#menList");
-    const women = $("#womenList");
-    // Initial attach
-    attachForContainer(men); attachForContainer(women);
-
-    // Observe for re-renders
-    const obs = new MutationObserver(()=>{ attachForContainer(men); attachForContainer(women); });
-    if(men) obs.observe(men, { childList:true, subtree:true });
-    if(women) obs.observe(women, { childList:true, subtree:true });
   }
 
-  function ensureAdminStatsUI(){
-    const anchor = $("#resetCallsBranch");
-    if(!anchor) return null;
-
-    // Avoid duplicates
-    if($("#tqStatsWrap")) return $("#tqStatsWrap");
-
-    // Insert after the buttons row that contains resetCallsBranch
-    const btnRow = anchor.closest(".btns") || anchor.parentElement;
-    const wrap = document.createElement("div");
-    wrap.id = "tqStatsWrap";
-    wrap.style.marginTop = "12px";
-    wrap.innerHTML = `
-      <div class="pill" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
-        <div style="display:flex;flex-wrap:wrap;gap:8px">
-          <span class="pill" style="background:rgba(255,255,255,.7)">الإجمالي: <b id="st_total">0</b></span>
-          <span class="pill" style="background:rgba(255,255,255,.7)">رجال: <b id="st_men">0</b></span>
-          <span class="pill" style="background:rgba(255,255,255,.7)">نساء: <b id="st_women">0</b></span>
-          <span class="pill" style="background:rgba(255,255,255,.7)">نجاح: <b id="st_pass">0</b></span>
-          <span class="pill" style="background:rgba(255,255,255,.7)">رسوب: <b id="st_fail">0</b></span>
-          <span class="pill" style="background:rgba(255,255,255,.7)">غياب: <b id="st_absent">0</b></span>
-        </div>
-        <button class="danger" id="resetStatsBtn" title="يصفّر الإحصائيات فقط">تصفير الإحصائيات</button>
-      </div>
-      <small class="help" style="margin-top:6px;display:block">الإحصائيات تخص اليوم الحالي والفرع الحالي فقط.</small>
-    `;
-    if(btnRow && btnRow.parentElement){
-      btnRow.parentElement.insertBefore(wrap, btnRow.nextSibling);
-    }else{
-      anchor.insertAdjacentElement("afterend", wrap);
+  // Keep current card colored even if display doesn't pick it up (fallback)
+  function updateCurrentCard(){
+    const num = ($("#curNumber")?.textContent || "").trim();
+    if(!num) return;
+    const res = cache[num];
+    const card = document.querySelector(".bigNumberCard");
+    // Only apply if not already colored by main app
+    if(card && !card.classList.contains("pass") && !card.classList.contains("fail") && !card.classList.contains("absent")){
+      applyClass(card, res);
     }
-    return wrap;
   }
 
-  function wireAdminStats(ref){
-    const wrap = ensureAdminStatsUI();
-    if(!wrap) return;
-
-    let resetTs = 0;
-    const latest = {}; // num -> {result, gender, ts}
-
-    function render(){
-      let total=0, men=0, women=0, pass=0, fail=0, absent=0;
-      for(const k of Object.keys(latest)){
-        const r = latest[k];
-        if(!r || !r.ts) continue;
-        if(r.ts < resetTs) continue;
-        if(!isToday(r.ts)) continue;
-        total += 1;
-        if((r.gender||"")==="men") men += 1;
-        else if((r.gender||"")==="women") women += 1;
-        if(r.result==="pass") pass += 1;
-        else if(r.result==="fail") fail += 1;
-        else if(r.result==="absent") absent += 1;
-      }
-      const set = (id, v)=>{ const el=$("#"+id); if(el) el.textContent=String(v); };
-      set("st_total", total);
-      set("st_men", men);
-      set("st_women", women);
-      set("st_pass", pass);
-      set("st_fail", fail);
-      set("st_absent", absent);
-    }
-
-    ref.get("statsResetTs").on((v)=>{
-      if(typeof v === "number") resetTs = v;
-      else if(v && typeof v.ts === "number") resetTs = v.ts;
-      render();
-    });
-
-    ref.get("results").map().on((val, key)=>{
-      if(!key || key === "_") return;
-      if(!val){
-        delete latest[key];
-      }else{
-        // keep only essential fields
-        latest[key] = {
-          result: val.result,
-          gender: val.gender,
-          ts: val.ts || val.resultAt || val.time || 0
-        };
-      }
-      render();
-    });
-
-    const btn = $("#resetStatsBtn");
-    if(btn){
-      btn.onclick = ()=>{
-        if(!confirm("تأكيد: تصفير الإحصائيات لليوم الحالي؟")) return;
-        ref.get("statsResetTs").put(Date.now());
+  // Hook into staff result buttons to update cache immediately (even if peers down)
+  function hookStaffButtons(){
+    const passBtn = $("#passBtn"), failBtn = $("#failBtn"), absentBtn = $("#absentBtn");
+    if(!passBtn && !failBtn && !absentBtn) return;
+    const getSelectedNum = () => {
+      const sel = $("#gradeNum");
+      const v = (sel?.value || "").trim();
+      if(v) return v;
+      return ($("#currentNum")?.textContent || "").trim();
+    };
+    const wrap = (btn, res) => {
+      if(!btn) return;
+      const old = btn.onclick;
+      btn.onclick = (ev) => {
+        const n = getSelectedNum();
+        if(n){
+          cache[n] = res;
+          saveCache(branch, cache);
+          // Update local UI immediately
+          applyClass($("#lastNumCard") || document.querySelector(".bigNumberCard"), res);
+        }
+        try{ if(typeof old === "function") old.call(btn, ev); }catch(e){}
+        // Give main app a moment, then repaint lists
+        setTimeout(() => { updateTiles(); updateCurrentCard(); }, 250);
       };
+    };
+    wrap(passBtn, "pass");
+    wrap(failBtn, "fail");
+    wrap(absentBtn, "absent");
+  }
+
+  // Live sync from Gun if available (best effort)
+  function hookGun(){
+    if(typeof window.Gun !== "function") return;
+    try{
+      const gun = Gun({ peers: PEERS, localStorage: true, radisk: true });
+      const ref = gun.get("traffic_queue_clean").get(branch);
+
+      // Sync results map
+      ref.get("results").map().on((val, key)=>{
+        if(!key || key === "_") return;
+        if(!val){ delete cache[key]; saveCache(branch, cache); updateTiles(); updateCurrentCard(); return; }
+        const res = val.result;
+        if(res === "pass" || res === "fail" || res === "absent"){
+          cache[key] = res;
+          saveCache(branch, cache);
+          updateTiles();
+          updateCurrentCard();
+        }
+      });
+
+      // Sync current result too (in case results node not filled)
+      ref.get("current").on((c)=>{
+        const num = String(c?.number || "").trim();
+        const res = c?.result;
+        if(num && (res==="pass" || res==="fail" || res==="absent")){
+          cache[num] = res;
+          saveCache(branch, cache);
+          updateTiles();
+          updateCurrentCard();
+        }
+      });
+    }catch(e){
+      // ignore
     }
   }
 
-  document.addEventListener("DOMContentLoaded", ()=>{
-    const gun = makeGun();
-    if(!gun) return;
-    const b = branch();
-    const ref = refFor(gun, b);
+  // Initial paint + observers
+  function boot(){
+    hookStaffButtons();
+    hookGun();
+    updateTiles();
+    updateCurrentCard();
 
-    // Display page: color tiles by results
-    if($("#menList") && $("#womenList")){
-      wireDisplayTiles(ref);
-    }
+    // Observe list changes (numbers added/removed)
+    const obsTargets = [$("#menList"), $("#womenList")].filter(Boolean);
+    const mo = new MutationObserver(()=>{ updateTiles(); updateCurrentCard(); });
+    obsTargets.forEach(t=> mo.observe(t, { childList:true, subtree:true }));
+  }
 
-    // Admin page: stats UI
-    if($("#saveAdminPin") && $("#resetCallsBranch")){
-      wireAdminStats(ref);
-    }
-  });
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
 })();
