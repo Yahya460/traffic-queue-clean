@@ -6,7 +6,13 @@
     const enc = new TextEncoder().encode(text);
     const buf = await crypto.subtle.digest("SHA-256", enc);
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
+  
+  const todayKey = ()=>{
+    const d=new Date();
+    const pad=(n)=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  };
+}
 
   function beep(kind="men"){
     try{
@@ -68,17 +74,30 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
       history:{ men:{}, women:{} },
       centerImage:{ dataUrl:"", name:"", ts:0 },
       auth:{ adminHash:"" },
-      staffUsers:{}
+      staffUsers:{},
+      stats:{ date:(new Date()).toISOString().slice(0,10), total:0, men:0, women:0, success:0, absent:0, fail:0 }
     };
   }
 
   function ensure(ref){
-    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults());
-// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
-ref.get("historyMen").put([]);
-ref.get("historyWomen").put([]);
-ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
-ref.get("results").put({}); });
+    const def = defaults();
+    ref.once((d)=>{
+      // إنشاء البيانات لأول مرة فقط
+      if(!d || !d.settings){
+        ref.put(def);
+        return;
+      }
+      // التأكد من وجود العقد الأساسية بدون تصفير
+      ref.get("settings").once(v=>{ if(!v) ref.get("settings").put(def.settings); });
+      ref.get("current").once(v=>{ if(!v) ref.get("current").put(def.current); });
+      ref.get("note").once(v=>{ if(!v) ref.get("note").put(def.note); });
+      ref.get("history").once(v=>{ if(!v) ref.get("history").put(def.history); });
+      ref.get("centerImage").once(v=>{ if(!v) ref.get("centerImage").put(def.centerImage); });
+      ref.get("auth").once(v=>{ if(!v) ref.get("auth").put(def.auth); });
+      ref.get("staffUsers").once(v=>{ if(!v) ref.get("staffUsers").put(def.staffUsers); });
+      ref.get("chat").once(v=>{ if(!v) ref.get("chat").put({ private:{} }); });
+      ref.get("stats").once(v=>{ if(!v) ref.get("stats").put(def.stats); });
+    });
   }
 
   function setConn(el, ok){
@@ -444,6 +463,43 @@ ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:
 ref.get("results").put({});
       say("تم تصفير النظام ✅");
     };
+
+  // إحصائيات اليوم (تحديث مباشر)
+  const statsEls = {
+    date: $("#statsDate"),
+    total: $("#statsTotal"),
+    men: $("#statsMen"),
+    women: $("#statsWomen"),
+    success: $("#statsSuccess"),
+    absent: $("#statsAbsent"),
+    fail: $("#statsFail"),
+  };
+  ref.get("stats").on((st)=>{
+    const tk = todayKey();
+    st = st || { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
+    if(statsEls.date) statsEls.date.textContent = st.date || tk;
+    if(statsEls.total) statsEls.total.textContent = String(st.total||0);
+    if(statsEls.men) statsEls.men.textContent = String(st.men||0);
+    if(statsEls.women) statsEls.women.textContent = String(st.women||0);
+    if(statsEls.success) statsEls.success.textContent = String(st.success||0);
+    if(statsEls.absent) statsEls.absent.textContent = String(st.absent||0);
+    if(statsEls.fail) statsEls.fail.textContent = String(st.fail||0);
+  });
+
+  // زر تصفير الإحصائيات
+  const resetStatsBtn = $("#resetStats");
+  if(resetStatsBtn){
+    resetStatsBtn.onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4) return;
+      const ok = await requireAdminFn(pin);
+      if(!ok.ok) return;
+      if(!confirm("تصفير الإحصائيات اليومية لهذا الفرع؟")) return;
+      const tk = todayKey();
+      ref.get("stats").put({ date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 });
+      say("تم تصفير الإحصائيات ✅");
+    };
+  }
   }
 
   // ========= Staff =========
@@ -483,16 +539,6 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
     ref.get("current").on((c)=>{
       if(c) $("#currentNum").textContent = c.number ?? "--";
-      // تلوين إطار "آخر رقم" حسب النتيجة (ناجح/راسب/غياب)
-      const card = $("#lastNumCard") || document.querySelector(".bigNumberCard");
-      if(card){
-        card.classList.remove("pass","fail","absent");
-        const r = (c && (c.result || c.lastResult)) ? String(c.result || c.lastResult) : "";
-        if(r === "pass") card.classList.add("pass");
-        else if(r === "fail") card.classList.add("fail");
-        else if(r === "absent") card.classList.add("absent");
-      }
-
       // Auto-fill "رقم التلميذ للنتيجة" بآخر رقم تم نداؤه (مع إمكانية تعديله)
       const rn = $("#resultNum");
       if(rn && c && (c.number!==undefined && c.number!==null)){
@@ -588,7 +634,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
   if(prev && prev.number && prev.number !== "--" && (prev.gender === "men" || prev.gender === "women")){
     const bucketPrev = (prev.gender === "women") ? "women" : "men";
     const key = String(now); // مفتاح واضح
-    ref.get("history").get(bucketPrev).get(key).put({ number: prev.number, staff: prev.staff || "", ts: now });
+    ref.get("history").get(bucketPrev).get(key).put({ number: prev.number, staff: prev.staff || "", ts: prev.ts || now, result: prev.result || "", resultAt: prev.resultAt || 0, resultBy: prev.resultBy || "" });
 
     // تقليم السجل بعد لحظات لضمان وصول البيانات
     setTimeout(()=>{
@@ -607,6 +653,19 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
   // 2) تحديث الرقم الحالي
   ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
+  // 3) تحديث الإحصائيات اليومية (إجمالي/رجال/نساء)
+  ref.get("stats").once((st)=>{
+    const tk = todayKey();
+    st = st || { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
+    if(st.date !== tk){
+      st = { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
+    }
+    st.total = (st.total||0) + 1;
+    if(gender === "men") st.men = (st.men||0) + 1;
+    if(gender === "women") st.women = (st.women||0) + 1;
+    ref.get("stats").put(st);
+  });
+
   // تحديث "التالي" للموظف إذا كان ضمن نطاقه
       const ov2 = parseOverrideRange();
       const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
@@ -658,30 +717,6 @@ $("#requestNext").onclick = async ()=>{
   // نداء تلقائي
   $("#callNext").click();
 };
-
-    // ========= نتيجة آخر رقم (ناجح/راسب/غياب) =========
-    async function setLastResult(kind){
-      const auth = await requireStaff();
-      if(!auth) return;
-      const nowCur = await new Promise(res=> ref.get("current").once(res));
-      const curNum = (nowCur && (nowCur.number ?? nowCur.num)) ? String(nowCur.number ?? nowCur.num) : "--";
-      if(!curNum || curNum==="--"){
-        say("لا يوجد رقم حالي لتسجيل النتيجة");
-        return;
-      }
-      // تحديث نتيجة الرقم الحالي فقط
-      ref.get("current").put({ result: kind, resultAt: Date.now(), resultBy: auth.u || "" });
-      say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
-    }
-
-    const pb = $("#passBtn");
-    const fb = $("#failBtn");
-    const ab = $("#absentBtn");
-
-    if(pb) pb.onclick = ()=> setLastResult("pass");
-    if(fb) fb.onclick = ()=> setLastResult("fail");
-    if(ab) ab.onclick = ()=> setLastResult("absent");
-
 
   }
 
@@ -874,19 +909,101 @@ async function initChatAdmin(ref, requireAdminFn){
     const u = (selEl.value || "").trim();
     if(!u) return;
     if(!confirm(`مسح الدردشة مع ${u} ؟`)) return;
-    const path = ref.get("chat").get("private").get(u).get("messages");
-    // حذف فعلي: Gun يحتاج put(null) لكل رسالة داخل الـ set
-    path.map().once((data, key)=>{
-      if(!key || key === "_" ) return;
-      path.get(key).put(null);
+    // مسح فعلي لكل الرسائل (GUN لا يحذف مفاتيح map بمجرد استبدال الكائن)
+    ref.get("chat").get("private").get(u).get("messages").once((obj)=>{
+      if(obj){
+        Object.keys(obj).filter(k=>k!=="_").forEach(k=>{
+          ref.get("chat").get("private").get(u).get("messages").get(k).put(null);
+        });
+      }
+      // إعادة تحميل
+      setTimeout(()=> attach(u), 250);
     });
-    // تحديث الواجهة بعد قليل
-    setTimeout(()=> attach(u), 350);
   };
 
   attach("");
 }
 
+
+// ---------------- نتائج (ناجح/غياب/راسب) وحفظها مع السجل ----------------
+function setLastCardClass(cls){
+  const card = document.getElementById("lastCard") || document.querySelector(".bigNumberCard");
+  if(!card) return;
+  card.classList.remove("pass","fail","absent");
+  if(cls) card.classList.add(cls);
+}
+
+async function setResult(kind){
+  const auth = await requireStaff();
+  if(!auth) return;
+  const username = auth.u;
+
+  const cur = await new Promise(res=> ref.get("current").once(res));
+  if(!cur || !cur.number || cur.number === "--"){ say("لا يوجد رقم حالي"); return; }
+
+  const prevKind = (cur.result || "");
+  if(prevKind === kind){
+    if(kind === "success") setLastCardClass("pass");
+    else if(kind === "fail") setLastCardClass("fail");
+    else setLastCardClass("absent");
+    say("تم ✅");
+    return;
+  }
+
+  const nowTs = Date.now();
+
+  // تحديث الإحصائيات (نجاح/غياب/رسوب) مع معالجة تغيير النتيجة
+  ref.get("stats").once((st)=>{
+    const tk = todayKey();
+    st = st || { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
+    if(st.date !== tk){
+      st = { date: tk, total:0, men:0, women:0, success:0, absent:0, fail:0 };
+    }
+
+    const dec = (k)=>{
+      if(k === "success") st.success = Math.max(0,(st.success||0)-1);
+      else if(k === "absent") st.absent = Math.max(0,(st.absent||0)-1);
+      else if(k === "fail") st.fail = Math.max(0,(st.fail||0)-1);
+    };
+    const inc = (k)=>{
+      if(k === "success") st.success = (st.success||0)+1;
+      else if(k === "absent") st.absent = (st.absent||0)+1;
+      else if(k === "fail") st.fail = (st.fail||0)+1;
+    };
+
+    if(prevKind) dec(prevKind);
+    inc(kind);
+
+    ref.get("stats").put(st);
+  });
+
+  // تحديث الرقم الحالي (سيُحفظ في السجل لاحقًا مع النتيجة)
+  ref.get("current").put({ result: kind, resultAt: nowTs, resultBy: username });
+
+  if(kind === "success") setLastCardClass("pass");
+  else if(kind === "fail") setLastCardClass("fail");
+  else setLastCardClass("absent");
+
+  say("تم تحديث النتيجة ✅");
+}
+
+const passBtn = document.getElementById("passBtn");
+const failBtn = document.getElementById("failBtn");
+const absentBtn = document.getElementById("absentBtn");
+
+if(passBtn) passBtn.onclick = ()=> setResult("success");
+if(failBtn) failBtn.onclick = ()=> setResult("fail");
+if(absentBtn) absentBtn.onclick = ()=> setResult("absent");
+
+ref.get("current").on((c)=>{
+  const r = c?.result || "";
+  if(r === "success") setLastCardClass("pass");
+  else if(r === "fail") setLastCardClass("fail");
+  else if(r === "absent") setLastCardClass("absent");
+  else setLastCardClass("");
+});
+
+// ------------------------------------------------------------------------
 async function initChatStaff(ref, requireStaffFn){
   const listEl = $("#chatListStaff");
   if(!listEl) return;

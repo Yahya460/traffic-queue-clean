@@ -91,6 +91,19 @@
               <button class="warn" id="resetCallsWomen">تصفير نداءات النساء</button>
               <button class="danger" id="resetCallsBranch">تصفير النداءات + الرقم الحالي</button>
             </div>
+            <div class="splitLine"></div>
+            <div class="splitLine"></div>
+<div class="hd" style="margin-top:10px">إحصائيات اليوم</div>
+<div class="hint" style="margin-top:6px;color:#6b7280;font-size:13px;line-height:1.9">
+  التاريخ: <b id="statsDate">—</b><br/>
+  الإجمالي: <b id="statsTotal">0</b> | رجال: <b id="statsMen">0</b> | نساء: <b id="statsWomen">0</b><br/>
+  النجاح: <b id="statsSuccess">0</b> | الغياب: <b id="statsAbsent">0</b> | الرسوب: <b id="statsFail">0</b>
+</div>
+<div class="btns" style="margin-top:10px">
+  <button class="warn" id="resetStats">تصفير الإحصائيات</button>
+</div>
+            <div class="btns" style="margin-top:10px">
+            </div>
         </div>
       </div>
 
@@ -146,7 +159,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
   <script src="./app.js?v=21"></script>
-  <script>window.TQ.initAdmin();</script>
+  <script>initAdmin();</script>
 
 <script>
   function toggleFullscreen(){
@@ -165,6 +178,4 @@
 </script>
 
 </body>
-</html><button id="btnResetDisplay" class="btn-danger">
-  تصفير شاشة العرض (هذا الفرع)
-</button>
+</html>
