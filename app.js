@@ -121,6 +121,57 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
+    // ====== إحصائيات يومية (تتحدث تلقائياً) ======
+    const $stat = (id)=> document.getElementById(id);
+    let _resetAt = 0;
+    let _menHist = [];
+    let _womenHist = [];
+    let _resultsMap = {};
+
+    function calcStats(){
+      const men = Array.isArray(_menHist)? _menHist : [];
+      const women = Array.isArray(_womenHist)? _womenHist : [];
+      const menF = men.filter(x=> (x?.ts||0) >= _resetAt);
+      const womenF = women.filter(x=> (x?.ts||0) >= _resetAt);
+      const total = menF.length + womenF.length;
+
+      let pass=0, fail=0, absent=0;
+      // عدّ النتائج حسب ts>=resetAt (آخر نتيجة للرقم)
+      const rm = _resultsMap || {};
+      Object.keys(rm).forEach(k=>{
+        const r = rm[k];
+        if(!r) return;
+        const ts = r.ts || 0;
+        if(ts < _resetAt) return;
+        if(r.result==="pass") pass++;
+        else if(r.result==="fail") fail++;
+        else if(r.result==="absent") absent++;
+      });
+
+      if($stat("statTotal")) $stat("statTotal").textContent = String(total);
+      if($stat("statMen")) $stat("statMen").textContent = String(menF.length);
+      if($stat("statWomen")) $stat("statWomen").textContent = String(womenF.length);
+      if($stat("statPass")) $stat("statPass").textContent = String(pass);
+      if($stat("statFail")) $stat("statFail").textContent = String(fail);
+      if($stat("statAbsent")) $stat("statAbsent").textContent = String(absent);
+    }
+
+    ref.get("statsMeta").on((m)=>{
+      _resetAt = Number(m?.resetAt||0) || 0;
+      calcStats();
+    });
+    ref.get("historyMen").on((h)=>{ _menHist = h||[]; calcStats(); });
+    ref.get("historyWomen").on((h)=>{ _womenHist = h||[]; calcStats(); });
+    ref.get("results").on((r)=>{ _resultsMap = r||{}; calcStats(); });
+
+    const rsBtn = $("#resetStatsBtn");
+    if(rsBtn){
+      rsBtn.onclick = ()=>{
+        ref.get("statsMeta").put({ resetAt: Date.now() });
+        say("تم تصفير الإحصائيات ✅");
+      };
+    }
+
 
     
 
@@ -556,6 +607,33 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
     $("#callNext").onclick = async ()=>{
       const auth = await requireStaff();
+    // تعبئة قائمة الأرقام ضمن نطاق الموظف (إن توفر نطاق)
+    try{
+      const pick = $("#traineePick");
+      if(pick){
+        const u = (await new Promise(res=> ref.get("users").get(auth.u||"").once(res))) || {};
+        let start = Number(u?.rangeStart ?? u?.from ?? u?.start ?? NaN);
+        let end   = Number(u?.rangeEnd   ?? u?.to   ?? u?.end   ?? NaN);
+        // دعم override من لوحة المدير (إن وجدت)
+        const ov = ($('#staffRangeOverride')?.value || '').trim();
+        if(ov && /\d+\s*[-–]\s*\d+/.test(ov)){
+          const mm = ov.match(/(\d+)\s*[-–]\s*(\d+)/);
+          if(mm){ start = Number(mm[1]); end = Number(mm[2]); }
+        }
+        if(Number.isFinite(start) && Number.isFinite(end) && end>=start){
+          pick.innerHTML = "";
+          for(let n=start; n<=end; n++){
+            const opt=document.createElement("option");
+            opt.value = String(n);
+            opt.textContent = String(n);
+            pick.appendChild(opt);
+          }
+        }else{
+          pick.innerHTML = `<option value="">— لا يوجد نطاق محدد —</option>`;
+        }
+      }
+    }catch(e){}
+
       if(!auth) return;
       const username = auth.u;
       const staffData = auth.data || {};
@@ -663,57 +741,37 @@ $("#requestNext").onclick = async ()=>{
     async function setLastResult(kind){
       const auth = await requireStaff();
       if(!auth) return;
-      const staffData = auth.data || {};
 
-      // الرقم المختار للتقييم (إن وجد) وإلا رقم الحالي
-      const pickEl = $("#gradeNum");
-      const picked = pickEl ? (pickEl.value || "").trim() : "";
-      const cur = await new Promise(res=> ref.get("current").once(res));
-      const num = (picked || String(cur?.number||"")).trim();
+      // رقم مستهدف: إما من القائمة (نطاق الموظف) أو الرقم الحالي
+      const pickEl = $("#traineePick");
+      const picked = pickEl ? String(pickEl.value||"").trim() : "";
+      const nowCur = await new Promise(res=> ref.get("current").once(res));
+      const curNum = (nowCur && (nowCur.number ?? nowCur.num)) ? String(nowCur.number ?? nowCur.num) : "--";
+      const targetNum = picked && picked !== "--" ? picked : curNum;
 
-      if(!num){
-        say("اختر رقم للتقييم أو نادِ رقم أولاً");
+      if(!targetNum || targetNum==="--"){
+        say("لا يوجد رقم لتسجيل النتيجة");
         return;
       }
 
-      // النطاق (من/إلى)
-      const ov = parseOverrideRange();
-      const n = parseInt(num, 10);
-      const rf = ov ? ov.from : staffData?.rangeFrom;
-      const rt = ov ? ov.to : staffData?.rangeTo;
-      if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
-        const from = parseInt(rf,10), to = parseInt(rt,10);
-        if(!Number.isFinite(n) || n < from || n > to){
-          say(`هذا الموظف مسموح له بالأرقام من ${from} إلى ${to} فقط`);
-          return;
-        }
-        // تحديث قائمة الأرقام (gradeNum) لتكون ضمن النطاق
-        if(pickEl){
-          const curVal = pickEl.value;
-          pickEl.innerHTML = `<option value="">اختر رقم…</option>` + Array.from({length:(to-from+1)},(_,i)=>{
-            const v = String(from+i);
-            return `<option value="${v}">${v}</option>`;
-          }).join("");
-          if(curVal && n>=from && n<=to) pickEl.value = curVal;
-          else if(num) pickEl.value = String(n);
-        }
-      }
+      // الجنس للتلوين في شاشة العرض: حسب اختيار الموظف (الواجهة)
+      const gSel = ($("#gender")?.value || (nowCur?.gender||"")).trim();
+      const gender = (gSel==="women"||gSel==="men") ? gSel : (nowCur?.gender || "");
 
-      const gender = ($("#gender")?.value || "").trim(); // حسب اختيار الموظف
-      const now = Date.now();
+      const ts = Date.now();
 
-      // 1) خزّن النتيجة لهذا الرقم لتلوين المربعات في شاشة العرض
-      ref.get("results").get(String(n)).put({ result: kind, gender, ts: now, by: auth.u || "" });
+      // تحديث نتيجة الرقم في السجل العام (للتلوين + الإحصائيات)
+      ref.get("results").get(String(targetNum)).put({ result: kind, gender, ts, by: auth.u || "" });
 
-      // 2) لو الرقم هو الحالي، حدّث current أيضًا (للكرت الكبير)
-      if(cur && String(cur.number||"").trim() === String(n)){
-        ref.get("current").put({ ...cur, result: kind, resultAt: now, resultBy: auth.u || "" });
+      // إذا كان الرقم الحالي نفسه، خزّن النتيجة كذلك في current لإظهار لون كرت الرقم الحالي
+      if(String(targetNum) === String(curNum)){
+        ref.get("current").put({ result: kind, resultAt: ts, resultBy: auth.u || "" });
       }
 
       say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
     }
 
-    const pb = $("#passBtn");
+    const pb = $("#passBtn"); = $("#passBtn");
     const fb = $("#failBtn");
     const ab = $("#absentBtn");
 
@@ -724,7 +782,22 @@ $("#requestNext").onclick = async ()=>{
 
   }
 
-  // ========= Display =========
+  
+  // ========= Result coloring helpers =========
+  function applyResultsToTiles(target, results){
+    if(!target) return;
+    const tiles = target.querySelectorAll(".tile[data-num]");
+    tiles.forEach(t=>{
+      const num = String(t.getAttribute("data-num")||"").trim();
+      const r = results && results[num] ? results[num].result : "";
+      t.classList.remove("pass","fail","absent");
+      if(r==="pass") t.classList.add("pass");
+      else if(r==="fail") t.classList.add("fail");
+      else if(r==="absent") t.classList.add("absent");
+    });
+  }
+
+// ========= Display =========
   async function initDisplay(){
     const b = branch();
     const gun = makeGun();
@@ -805,13 +878,22 @@ function makeBucketRenderer(bucket, target){
 
     target.innerHTML = items.map(x=>{
       const t = x.ts ? formatTime(x.ts) : "";
-      return `<div class="tile"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
+      return `<div class="tile" data-num="${esc(x.num)}"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
     }).join("") ||
       `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
   });
+    try{ applyResultsToTiles(target, (typeof _resultsCache!=="undefined" ? _resultsCache : {})); }catch(e){}
 }
 makeBucketRenderer("men", $("#menList"));
-makeBucketRenderer("women", $("#womenList"));  }
+makeBucketRenderer("women", $("#womenList"));
+  // تلوين مربعات الرجال/النساء حسب النتائج المسجلة
+  let _resultsCache = {};
+  ref.get("results").on((r)=>{
+    _resultsCache = r || {};
+    applyResultsToTiles($("#menList"), _resultsCache);
+    applyResultsToTiles($("#womenList"), _resultsCache);
+  });
+  }
 
   // ========= Chat (Admin <-> Staff) =========
 function formatTime(ts){

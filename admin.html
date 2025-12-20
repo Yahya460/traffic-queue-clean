@@ -80,6 +80,24 @@
             <button class="primary" id="saveAdminNote">حفظ الملاحظة</button>
             <button class="warn" id="clearHistory">مسح سجل الأرقام</button>
             <button class="danger" id="resetAll">تصفير النظام بالكامل</button>
+        <div class="card" style="margin-top:12px">
+          <div class="hd">الإحصائيات اليومية</div>
+          <div class="bd">
+            <div class="grid2" style="gap:10px">
+              <div class="miniStat"><div class="k">الإجمالي</div><div class="v" id="statTotal">0</div></div>
+              <div class="miniStat"><div class="k">رجال</div><div class="v" id="statMen">0</div></div>
+              <div class="miniStat"><div class="k">نساء</div><div class="v" id="statWomen">0</div></div>
+              <div class="miniStat"><div class="k">نجاح</div><div class="v" id="statPass">0</div></div>
+              <div class="miniStat"><div class="k">رسوب</div><div class="v" id="statFail">0</div></div>
+              <div class="miniStat"><div class="k">غياب</div><div class="v" id="statAbsent">0</div></div>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+              <button id="resetStatsBtn" class="btn warn" type="button">تصفير الإحصائيات</button>
+              <small style="color:rgba(11,34,48,.65);font-weight:800">ملاحظة: تصفير الإحصائيات لا يمسح النداءات، فقط يبدأ عدًّا جديدًا.</small>
+            </div>
+          </div>
+        </div>
+
           </div>
 
             <div class="splitLine"></div>
