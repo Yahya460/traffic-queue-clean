@@ -121,57 +121,6 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
-    // ====== إحصائيات يومية (تتحدث تلقائياً) ======
-    const $stat = (id)=> document.getElementById(id);
-    let _resetAt = 0;
-    let _menHist = [];
-    let _womenHist = [];
-    let _resultsMap = {};
-
-    function calcStats(){
-      const men = Array.isArray(_menHist)? _menHist : [];
-      const women = Array.isArray(_womenHist)? _womenHist : [];
-      const menF = men.filter(x=> (x?.ts||0) >= _resetAt);
-      const womenF = women.filter(x=> (x?.ts||0) >= _resetAt);
-      const total = menF.length + womenF.length;
-
-      let pass=0, fail=0, absent=0;
-      // عدّ النتائج حسب ts>=resetAt (آخر نتيجة للرقم)
-      const rm = _resultsMap || {};
-      Object.keys(rm).forEach(k=>{
-        const r = rm[k];
-        if(!r) return;
-        const ts = r.ts || 0;
-        if(ts < _resetAt) return;
-        if(r.result==="pass") pass++;
-        else if(r.result==="fail") fail++;
-        else if(r.result==="absent") absent++;
-      });
-
-      if($stat("statTotal")) $stat("statTotal").textContent = String(total);
-      if($stat("statMen")) $stat("statMen").textContent = String(menF.length);
-      if($stat("statWomen")) $stat("statWomen").textContent = String(womenF.length);
-      if($stat("statPass")) $stat("statPass").textContent = String(pass);
-      if($stat("statFail")) $stat("statFail").textContent = String(fail);
-      if($stat("statAbsent")) $stat("statAbsent").textContent = String(absent);
-    }
-
-    ref.get("statsMeta").on((m)=>{
-      _resetAt = Number(m?.resetAt||0) || 0;
-      calcStats();
-    });
-    ref.get("historyMen").on((h)=>{ _menHist = h||[]; calcStats(); });
-    ref.get("historyWomen").on((h)=>{ _womenHist = h||[]; calcStats(); });
-    ref.get("results").on((r)=>{ _resultsMap = r||{}; calcStats(); });
-
-    const rsBtn = $("#resetStatsBtn");
-    if(rsBtn){
-      rsBtn.onclick = ()=>{
-        ref.get("statsMeta").put({ resetAt: Date.now() });
-        say("تم تصفير الإحصائيات ✅");
-      };
-    }
-
 
     
 
@@ -322,7 +271,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
     }
     ref.get("staffUsers").on(renderStaffList);
 
-    $("#setBranch").onclick = ()=>{
+    (()=>{ const __el = $("#setBranch"); if(!__el) return; __el.onclick = ()=>{
   const sel = $("#branchSelect") || $("#branchValue");
   const nb = ((sel && sel.value) ? sel.value : "صحار").trim();
   localStorage.setItem("tq_branch", nb);
@@ -330,9 +279,9 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
   u.searchParams.set("branch", nb);
   u.searchParams.delete("room");
   location.href = u.toString();
-};
+}; })();
 
-    $("#saveAdminPin").onclick = async ()=>{
+    (()=>{ const __el = $("#saveAdminPin"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("رقم المدير لا يقل عن 4 أرقام"); return; }
       const first = await setAdminIfEmpty(pin);
@@ -343,7 +292,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
         if(priv) priv.classList.remove("isLocked");
       }
       say(chk.ok ? "رقم المدير صحيح ✅ (تم فتح الخصوصية)" : "رقم المدير غير صحيح");
-    };
+    }; })();
 
     const unlockPrivate = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
@@ -354,20 +303,20 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
         if(priv) priv.classList.remove("isLocked");
       }
     };
-    $("#adminPin").addEventListener("change", unlockPrivate);
-    $("#adminPin").addEventListener("keyup", (e)=>{ if(e.key==="Enter") unlockPrivate(); });
+    $("#adminPin")?.addEventListener("change", unlockPrivate);
+    $("#adminPin")?.addEventListener("keyup", (e)=>{ if(e.key==="Enter") unlockPrivate(); });
 
-    $("#resetAdminPin").onclick = async ()=>{
+    (()=>{ const __el = $("#resetAdminPin"); if(!__el) return; __el.onclick = async ()=>{
   const code = prompt("أدخل كود إعادة التعيين:");
   if(code !== "95359513"){ say("الكود غير صحيح"); return; }
   if(!confirm("هل تريد إعادة تعيين رقم المدير؟")) return;
   ref.get("auth").get("adminHash").put("");
   $("#adminPin").value = "";
   say("تم مسح رقم المدير ✅ أدخل رقم جديد ثم اضغط (حفظ رقم المدير)");
-};
+}; })();
 
 
-    $("#saveSettings").onclick = async ()=>{
+    (()=>{ const __el = $("#saveSettings"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       const first = await setAdminIfEmpty(pin);
@@ -379,17 +328,17 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
         tickerText: ($("#tickerText").value || "").trim() || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح"
       });
       say("تم حفظ الإعدادات ✅");
-    };
+    }; })();
 
-    $("#saveAdminNote").onclick = async ()=>{
+    (()=>{ const __el = $("#saveAdminNote"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       ref.get("note").put({ text: ($("#adminNote").value || "").trim(), staff:"المدير", ts: Date.now() });
       say("تم حفظ الملاحظة ✅");
-    };
+    }; })();
 
-    $("#addStaff").onclick = async ()=>{
+    (()=>{ const __el = $("#addStaff"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       const first = await setAdminIfEmpty(pin);
@@ -402,9 +351,9 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       ref.get("staffUsers").get(u).put({ pinHash: await sha256(sp), ts: Date.now() });
       $("#newUsername").value=""; $("#newUserPin").value="";
       say("تمت إضافة الموظف ✅");
-    };
+    }; })();
 
-    $("#imgFile").addEventListener("change", async (e)=>{
+    $("#imgFile")?.addEventListener("change", async (e)=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); e.target.value=""; return; }
       const first = await setAdminIfEmpty(pin);
@@ -417,21 +366,21 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       e.target.value="";
     });
 
-    $("#clearImage").onclick = async ()=>{
+    (()=>{ const __el = $("#clearImage"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       ref.get("centerImage").put({ dataUrl:"", name:"", ts: Date.now() });
       say("تم حذف الصورة ✅");
-    };
+    }; })();
 
-    $("#clearHistory").onclick = async ()=>{
+    (()=>{ const __el = $("#clearHistory"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       ref.get("history").put({ men:{}, women:{} });
       say("تم مسح سجل الأرقام ✅");
-    };
+    }; })();
 
 
     // تصفير النداءات (رجال/نساء) + خيار تصفير الرقم الحالي — للفرع الحالي فقط
@@ -453,25 +402,25 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
     };
 
-    $("#resetCallsMen").onclick = async ()=>{
+    (()=>{ const __el = $("#resetCallsMen"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       if(!confirm("أكيد تريد تصفير نداءات الرجال لهذا الفرع؟")) return;
       await clearBucket("men");
       say("تم تصفير نداءات الرجال ✅");
-    };
+    }; })();
 
-    $("#resetCallsWomen").onclick = async ()=>{
+    (()=>{ const __el = $("#resetCallsWomen"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       if(!confirm("أكيد تريد تصفير نداءات النساء لهذا الفرع؟")) return;
       await clearBucket("women");
       say("تم تصفير نداءات النساء ✅");
-    };
+    }; })();
 
-    $("#resetCallsBranch").onclick = async ()=>{
+    (()=>{ const __el = $("#resetCallsBranch"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
@@ -480,9 +429,9 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       await clearBucket("women");
       resetCurrent();
       say("تم تصفير النداءات والرقم الحالي ✅");
-    };
+    }; })();
 
-    $("#resetAll").onclick = async ()=>{
+    (()=>{ const __el = $("#resetAll"); if(!__el) return; __el.onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
@@ -494,8 +443,30 @@ ref.get("historyWomen").put([]);
 ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
 ref.get("results").put({});
       say("تم تصفير النظام ✅");
-    };
+    }; })();
   }
+
+    // عرض الإحصائيات (إجمالي/رجال/نساء/غياب/نجاح/رسوب)
+    ref.get("stats").on((s)=>{
+      const st = s && typeof s === "object" ? s : {};
+      const set = (id, v)=>{ const el = document.getElementById(id); if(el) el.textContent = String(v??0); };
+      set("stTotal", parseInt(st.total||0,10)||0);
+      set("stMen", parseInt(st.men||0,10)||0);
+      set("stWomen", parseInt(st.women||0,10)||0);
+      set("stAbsent", parseInt(st.absent||0,10)||0);
+      set("stPass", parseInt(st.pass||0,10)||0);
+      set("stFail", parseInt(st.fail||0,10)||0);
+    });
+
+    (()=>{ const __el = $("#resetStats"); if(!__el) return; __el.onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      if(!confirm("أكيد تريد تصفير الإحصائيات؟")) return;
+      ref.get("stats").put({ total:0, men:0, women:0, pass:0, fail:0, absent:0 });
+      say("تم تصفير الإحصائيات ✅");
+    }; })();
+
 
   // ========= Staff =========
   async function initStaff(){
@@ -588,6 +559,28 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
   const data = await new Promise(res=> ref.get("staffUsers").get(u).once(res));
   if(!data || !data.pinHash){ say("هذا المستخدم غير موجود"); return null; }
   if(await sha256(pin) !== data.pinHash){ say("رقم الموظف غير صحيح"); return null; }
+
+  // تعبئة قائمة أرقام النطاق للموظف (للتقييم السريع)
+  const es = $("#evalSelect");
+  if(es){
+    const ov = parseOverrideRange();
+    const rf = ov ? ov.from : data?.rangeFrom;
+    const rt = ov ? ov.to : data?.rangeTo;
+    const from = parseInt(rf,10), to = parseInt(rt,10);
+    if(Number.isFinite(from) && Number.isFinite(to) && from<=to){
+      const maxItems = 400; // حماية من النطاقات الضخمة
+      const span = Math.min(maxItems, to-from+1);
+      const opts = ['<option value="">— اختر رقم —</option>'];
+      for(let i=0;i<span;i++){
+        const n = from+i;
+        opts.push(`<option value="${n}">${n}</option>`);
+      }
+      es.innerHTML = opts.join("");
+    }else{
+      es.innerHTML = '<option value="">—</option>';
+    }
+  }
+
   return { u, data };
 }
 
@@ -595,7 +588,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
     initChatStaff(ref, async ()=>{ const r = await requireStaff(); return r ? r.u : null; });
 
 
-    $("#setBranch").onclick = ()=>{
+    (()=>{ const __el = $("#setBranch"); if(!__el) return; __el.onclick = ()=>{
   const sel = $("#branchSelect") || $("#branchValue");
   const nb = ((sel && sel.value) ? sel.value : "صحار").trim();
   localStorage.setItem("tq_branch", nb);
@@ -603,40 +596,13 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
   u.searchParams.set("branch", nb);
   u.searchParams.delete("room");
   location.href = u.toString();
-};
+}; })();
 
-    $("#callNext").onclick = async ()=>{
+    (()=>{ const __el = $("#callNext"); if(!__el) return; __el.onclick = async ()=>{
       const auth = await requireStaff();
-    // تعبئة قائمة الأرقام ضمن نطاق الموظف (إن توفر نطاق)
-    try{
-      const pick = $("#traineePick");
-      if(pick){
-        const u = (await new Promise(res=> ref.get("users").get(auth.u||"").once(res))) || {};
-        let start = Number(u?.rangeStart ?? u?.from ?? u?.start ?? NaN);
-        let end   = Number(u?.rangeEnd   ?? u?.to   ?? u?.end   ?? NaN);
-        // دعم override من لوحة المدير (إن وجدت)
-        const ov = ($('#staffRangeOverride')?.value || '').trim();
-        if(ov && /\d+\s*[-–]\s*\d+/.test(ov)){
-          const mm = ov.match(/(\d+)\s*[-–]\s*(\d+)/);
-          if(mm){ start = Number(mm[1]); end = Number(mm[2]); }
-        }
-        if(Number.isFinite(start) && Number.isFinite(end) && end>=start){
-          pick.innerHTML = "";
-          for(let n=start; n<=end; n++){
-            const opt=document.createElement("option");
-            opt.value = String(n);
-            opt.textContent = String(n);
-            pick.appendChild(opt);
-          }
-        }else{
-          pick.innerHTML = `<option value="">— لا يوجد نطاق محدد —</option>`;
-        }
-      }
-    }catch(e){}
-
       if(!auth) return;
       const username = auth.u;
-      const staffData = auth.data || {};
+      const staffData = auth.data || {}; })();
 
       const num = ($("#ticketNum").value || "").trim();
       const gender = $("#gender").value;
@@ -685,6 +651,20 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
   // 2) تحديث الرقم الحالي
   ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
+  // إحصائيات (تُصفّر من لوحة المدير عند الحاجة)
+  ref.get("stats").once((s)=>{
+    const st = s && typeof s === "object" ? s : {};
+    const next = {
+      total: (parseInt(st.total||0,10)||0) + 1,
+      men:   (parseInt(st.men||0,10)||0) + (gender==="men"?1:0),
+      women: (parseInt(st.women||0,10)||0) + (gender==="women"?1:0),
+      pass:  (parseInt(st.pass||0,10)||0),
+      fail:  (parseInt(st.fail||0,10)||0),
+      absent:(parseInt(st.absent||0,10)||0),
+    };
+    ref.get("stats").put(next);
+  });
+
   // تحديث "التالي" للموظف إذا كان ضمن نطاقه
       const ov2 = parseOverrideRange();
       const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
@@ -704,10 +684,10 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
       say("تم النداء ✅");
 };
 
-$("#requestNext").onclick = async ()=>{
+(()=>{ const __el = $("#requestNext"); if(!__el) return; __el.onclick = async ()=>{
   const auth = await requireStaff();
   if(!auth) return;
-  const staffData = auth.data || {};
+  const staffData = auth.data || {}; })();
   const ov = parseOverrideRange();
   const rf = ov ? ov.from : staffData?.rangeFrom;
   const rt = ov ? ov.to : staffData?.rangeTo;
@@ -742,36 +722,73 @@ $("#requestNext").onclick = async ()=>{
       const auth = await requireStaff();
       if(!auth) return;
 
-      // رقم مستهدف: إما من القائمة (نطاق الموظف) أو الرقم الحالي
-      const pickEl = $("#traineePick");
-      const picked = pickEl ? String(pickEl.value||"").trim() : "";
+      const sel = $("#evalSelect");
+      const chosen = sel && sel.value ? String(sel.value).trim() : "";
       const nowCur = await new Promise(res=> ref.get("current").once(res));
-      const curNum = (nowCur && (nowCur.number ?? nowCur.num)) ? String(nowCur.number ?? nowCur.num) : "--";
-      const targetNum = picked && picked !== "--" ? picked : curNum;
+      const curNum = (nowCur && (nowCur.number ?? nowCur.num)) ? String(nowCur.number ?? nowCur.num).trim() : "";
+      const num = chosen || curNum;
 
-      if(!targetNum || targetNum==="--"){
-        say("لا يوجد رقم لتسجيل النتيجة");
+      if(!num){
+        say("اختر رقمًا للتقييم أو نادِ رقمًا أولاً");
         return;
       }
 
-      // الجنس للتلوين في شاشة العرض: حسب اختيار الموظف (الواجهة)
-      const gSel = ($("#gender")?.value || (nowCur?.gender||"")).trim();
-      const gender = (gSel==="women"||gSel==="men") ? gSel : (nowCur?.gender || "");
+      // تحديد الجنس للرقم المُقيّم:
+      // - إذا كان الرقم الحالي: نأخذ الجنس من current
+      // - إذا كان رقمًا مختارًا: نأخذ الجنس من اختيار الموظف
+      const gSel = $("#gender");
+      let gender = "";
+      if(!chosen){
+        gender = (nowCur?.gender || "").trim();
+      }else{
+        gender = (gSel?.value || "").trim();
+      }
+      if(!gender){
+        say("اختر (رجال/نساء) لتلوين الرقم في شاشة العرض");
+        return;
+      }
 
-      const ts = Date.now();
+      // حفظ النتيجة في سجل النتائج لكل رقم (للتلوين في شاشة العرض)
+      ref.get("results").get(String(num)).put({ result: kind, gender, ts: Date.now(), by: auth.u || "" });
 
-      // تحديث نتيجة الرقم في السجل العام (للتلوين + الإحصائيات)
-      ref.get("results").get(String(targetNum)).put({ result: kind, gender, ts, by: auth.u || "" });
+      // إذا كان الرقم الحالي هو المُقيّم، حدّث current أيضاً لتلوين الكرت الكبير
+      if(String(num) === String(curNum)){
+        ref.get("current").put({ result: kind, resultAt: Date.now(), resultBy: auth.u || "" });
+      }
 
-      // إذا كان الرقم الحالي نفسه، خزّن النتيجة كذلك في current لإظهار لون كرت الرقم الحالي
-      if(String(targetNum) === String(curNum)){
-        ref.get("current").put({ result: kind, resultAt: ts, resultBy: auth.u || "" });
+      // تحديث إحصائيات اليوم (تُعرض في لوحة المدير)
+      ref.get("stats").once((s)=>{
+        const st = s && typeof s === "object" ? s : {};
+        const next = {
+          total: (parseInt(st.total||0,10)||0) + 0,
+          men:   (parseInt(st.men||0,10)||0) + 0,
+          women: (parseInt(st.women||0,10)||0) + 0,
+          pass:  (parseInt(st.pass||0,10)||0),
+          fail:  (parseInt(st.fail||0,10)||0),
+          absent:(parseInt(st.absent||0,10)||0),
+        };
+        // زيادة عداد النتيجة فقط
+        if(kind==="pass") next.pass += 1;
+        else if(kind==="fail") next.fail += 1;
+        else if(kind==="absent") next.absent += 1;
+        ref.get("stats").put(next);
+      });
+
+      // تلوين كرت آخر رقم في شاشة الموظف
+      const lastCard = $("#lastNumCard");
+      if(lastCard){
+        lastCard.classList.remove("pass","fail","absent");
+        lastCard.classList.add(kind);
       }
 
       say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
     }
+      // تحديث نتيجة الرقم الحالي فقط
+      ref.get("current").put({ result: kind, resultAt: Date.now(), resultBy: auth.u || "" });
+      say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
+    }
 
-    const pb = $("#passBtn"); = $("#passBtn");
+    const pb = $("#passBtn");
     const fb = $("#failBtn");
     const ab = $("#absentBtn");
 
@@ -782,27 +799,38 @@ $("#requestNext").onclick = async ()=>{
 
   }
 
-  
-  // ========= Result coloring helpers =========
-  function applyResultsToTiles(target, results){
-    if(!target) return;
-    const tiles = target.querySelectorAll(".tile[data-num]");
-    tiles.forEach(t=>{
-      const num = String(t.getAttribute("data-num")||"").trim();
-      const r = results && results[num] ? results[num].result : "";
-      t.classList.remove("pass","fail","absent");
-      if(r==="pass") t.classList.add("pass");
-      else if(r==="fail") t.classList.add("fail");
-      else if(r==="absent") t.classList.add("absent");
-    });
-  }
-
-// ========= Display =========
+  // ========= Display =========
   async function initDisplay(){
     const b = branch();
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
+
+    // Cache نتائج الأرقام لتلوين المربعات
+    const resultsCache = {};
+    function refreshTiles(){
+      try{
+        document.querySelectorAll('.tile').forEach(tile=>{
+          const nEl = tile.querySelector('.tileNum');
+          const num = (nEl?.textContent || '').trim();
+          tile.classList.remove('pass','fail','absent');
+          const r = resultsCache[num];
+          if(r?.result==='pass') tile.classList.add('pass');
+          else if(r?.result==='fail') tile.classList.add('fail');
+          else if(r?.result==='absent') tile.classList.add('absent');
+        });
+      }catch(e){}
+    }
+
+    ref.get("results").on((val)=>{
+      // val قد يكون كائن أو قيمة مفردة؛ نتعامل معه كخريطة
+      if(val && typeof val === "object"){
+        Object.assign(resultsCache, val);
+      }
+      // إعادة رسم القوائم إن وُجدت
+      refreshTiles();
+    });
+
 
     
 
@@ -832,7 +860,7 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
         ref.get("results").get(numKey).once((r)=>{
           const card2 = document.querySelector(".bigNumberCard");
           if(!card2) return;
-          if(card2.classList.contains("pass") || card2.classList.contains("fail") || card2.classList.contains("absent")) return;
+          if(card2.classList.contains("pass") || card2.classList.contains("fail")) return;
           if(r?.result==="pass") card2.classList.add("pass");
           else if(r?.result==="fail") card2.classList.add("fail");
           else if(r?.result==="absent") card2.classList.add("absent");
@@ -878,22 +906,14 @@ function makeBucketRenderer(bucket, target){
 
     target.innerHTML = items.map(x=>{
       const t = x.ts ? formatTime(x.ts) : "";
-      return `<div class="tile" data-num="${esc(x.num)}"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
+      return `<div class="tile"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
     }).join("") ||
       `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
+    refreshTiles();
   });
-    try{ applyResultsToTiles(target, (typeof _resultsCache!=="undefined" ? _resultsCache : {})); }catch(e){}
 }
 makeBucketRenderer("men", $("#menList"));
-makeBucketRenderer("women", $("#womenList"));
-  // تلوين مربعات الرجال/النساء حسب النتائج المسجلة
-  let _resultsCache = {};
-  ref.get("results").on((r)=>{
-    _resultsCache = r || {};
-    applyResultsToTiles($("#menList"), _resultsCache);
-    applyResultsToTiles($("#womenList"), _resultsCache);
-  });
-  }
+makeBucketRenderer("women", $("#womenList"));  }
 
   // ========= Chat (Admin <-> Staff) =========
 function formatTime(ts){
@@ -975,7 +995,7 @@ async function initChatAdmin(ref, requireAdminFn){
   });
 
   // send
-  $("#sendChatAdmin").onclick = async ()=>{
+  (()=>{ const __el = $("#sendChatAdmin"); if(!__el) return; __el.onclick = async ()=>{
     const pin = ($("#adminPin").value || "").trim();
     if(pin.length < 4) return;
     const ok = await requireAdminFn(pin);
@@ -987,9 +1007,9 @@ async function initChatAdmin(ref, requireAdminFn){
     if(!text) return;
     ref.get("chat").get("private").get(u).get("messages").set({ from:"المدير", role:"admin", text, ts: Date.now() });
     txtEl.value = "";
-  };
+  }; })();
 
-  $("#clearChatAdmin").onclick = async ()=>{
+  (()=>{ const __el = $("#clearChatAdmin"); if(!__el) return; __el.onclick = async ()=>{
     const pin = ($("#adminPin").value || "").trim();
     if(pin.length < 4) return;
     const ok = await requireAdminFn(pin);
@@ -1005,7 +1025,7 @@ async function initChatAdmin(ref, requireAdminFn){
     });
     // تحديث الواجهة بعد قليل
     setTimeout(()=> attach(u), 350);
-  };
+  }; })();
 
   attach("");
 }
@@ -1046,15 +1066,15 @@ async function initChatStaff(ref, requireStaffFn){
     if((document.querySelector("#userPin")?.value || "").trim().length >= 4) tryAttach();
   });
 
-  $("#clearChatStaff").onclick = async ()=>{
+  (()=>{ const __el = $("#clearChatStaff"); if(!__el) return; __el.onclick = async ()=>{
   const username = await requireStaffFn();
   if(!username) return;
   if(!confirm("مسح الدردشة بينك وبين المدير لهذا الفرع؟")) return;
   ref.get("chat").get("private").get(username).put({ messages: {} });
   setTimeout(()=> location.reload(), 250);
-};
+}; })();
 
-$("#sendChatStaff").onclick = async ()=>{
+(()=>{ const __el = $("#sendChatStaff"); if(!__el) return; __el.onclick = async ()=>{
 
     const username = await requireStaffFn();
     if(!username) return;
@@ -1065,7 +1085,7 @@ $("#sendChatStaff").onclick = async ()=>{
     if(!text) return;
     ref.get("chat").get("private").get(username).get("messages").set({ from: username, role:"staff", text, ts: Date.now() });
     txtEl.value = "";
-  };
+  }; })();
 }
 
 window.TQ = { initAdmin, initStaff, initDisplay };

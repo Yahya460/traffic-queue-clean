@@ -216,15 +216,14 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 }
 
 
+/* تلوين المربعات حسب النتيجة */
+.tile{border:3px solid rgba(0,0,0,.14)}
+.tile.pass{border-color: rgba(33,150,243,.95) !important;}
+.tile.fail{border-color: rgba(220,38,38,.95) !important;}
+.tile.absent{border-color: rgba(234,179,8,.95) !important;}
 
-/* === Result border colors (pass/fail/absent) === */
-.bigNumberCard.pass{ border: 6px solid #1d4ed8 !important; }
-.bigNumberCard.fail{ border: 6px solid #b91c1c !important; }
-.bigNumberCard.absent{ border: 6px solid #ca8a04 !important; }
-
-.tile.pass{ border: 4px solid #1d4ed8 !important; }
-.tile.fail{ border: 4px solid #b91c1c !important; }
-.tile.absent{ border: 4px solid #ca8a04 !important; }
-
-/* make tiles border a bit thicker overall if they have any result */
-.tile.pass .tileNum, .tile.fail .tileNum, .tile.absent .tileNum{ font-weight: 1000; }
+.statsGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:rgba(255,255,255,.55);border:2px solid rgba(0,0,0,.12);border-radius:16px;padding:10px;text-align:center}
+.stat .k{font-weight:900;color:rgba(11,34,48,.75);font-size:13px}
+.stat .v{font-weight:1000;font-size:28px;margin-top:4px}
+@media(max-width:720px){.statsGrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
