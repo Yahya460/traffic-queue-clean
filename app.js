@@ -483,6 +483,16 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
     ref.get("current").on((c)=>{
       if(c) $("#currentNum").textContent = c.number ?? "--";
+      // تلوين إطار "آخر رقم" حسب النتيجة (ناجح/راسب/غياب)
+      const card = $("#lastNumCard") || document.querySelector(".bigNumberCard");
+      if(card){
+        card.classList.remove("pass","fail","absent");
+        const r = (c && (c.result || c.lastResult)) ? String(c.result || c.lastResult) : "";
+        if(r === "pass") card.classList.add("pass");
+        else if(r === "fail") card.classList.add("fail");
+        else if(r === "absent") card.classList.add("absent");
+      }
+
       // Auto-fill "رقم التلميذ للنتيجة" بآخر رقم تم نداؤه (مع إمكانية تعديله)
       const rn = $("#resultNum");
       if(rn && c && (c.number!==undefined && c.number!==null)){
@@ -648,6 +658,30 @@ $("#requestNext").onclick = async ()=>{
   // نداء تلقائي
   $("#callNext").click();
 };
+
+    // ========= نتيجة آخر رقم (ناجح/راسب/غياب) =========
+    async function setLastResult(kind){
+      const auth = await requireStaff();
+      if(!auth) return;
+      const nowCur = await new Promise(res=> ref.get("current").once(res));
+      const curNum = (nowCur && (nowCur.number ?? nowCur.num)) ? String(nowCur.number ?? nowCur.num) : "--";
+      if(!curNum || curNum==="--"){
+        say("لا يوجد رقم حالي لتسجيل النتيجة");
+        return;
+      }
+      // تحديث نتيجة الرقم الحالي فقط
+      ref.get("current").put({ result: kind, resultAt: Date.now(), resultBy: auth.u || "" });
+      say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
+    }
+
+    const pb = $("#passBtn");
+    const fb = $("#failBtn");
+    const ab = $("#absentBtn");
+
+    if(pb) pb.onclick = ()=> setLastResult("pass");
+    if(fb) fb.onclick = ()=> setLastResult("fail");
+    if(ab) ab.onclick = ()=> setLastResult("absent");
+
 
   }
 
@@ -840,8 +874,14 @@ async function initChatAdmin(ref, requireAdminFn){
     const u = (selEl.value || "").trim();
     if(!u) return;
     if(!confirm(`مسح الدردشة مع ${u} ؟`)) return;
-    ref.get("chat").get("private").get(u).put({ messages: {} });
-    setTimeout(()=> attach(u), 250);
+    const path = ref.get("chat").get("private").get(u).get("messages");
+    // حذف فعلي: Gun يحتاج put(null) لكل رسالة داخل الـ set
+    path.map().once((data, key)=>{
+      if(!key || key === "_" ) return;
+      path.get(key).put(null);
+    });
+    // تحديث الواجهة بعد قليل
+    setTimeout(()=> attach(u), 350);
   };
 
   attach("");
