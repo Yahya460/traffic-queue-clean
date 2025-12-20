@@ -151,43 +151,18 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
       }
     });
 
-    // --- Admin PIN (with offline local fallback) ---
-    const adminHashKey = ()=> `tq_adminHash_${branch()}`;
-
-    const getAdminHash = ()=> new Promise(res=>{
-      // First: try local fallback (works even if relay is down)
-      const local = localStorage.getItem(adminHashKey());
-      if(local){ res(local); return; }
-      // Then: try network DB
-      try{
-        ref.get("auth").get("adminHash").once(v=>{
-          if(v){ localStorage.setItem(adminHashKey(), v); }
-          res(v);
-        });
-      }catch(e){
-        res(local);
-      }
-    });
-
+    const getAdminHash = ()=> new Promise(res=> ref.get("auth").get("adminHash").once(res));
     const setAdminIfEmpty = async (pin)=>{
       const stored = await getAdminHash();
       if(!stored){
-        const h = await sha256(pin);
-        // save local immediately
-        localStorage.setItem(adminHashKey(), h);
-        // also try save to relay (best effort)
-        try{ ref.get("auth").get("adminHash").put(h); }catch(e){}
+        ref.get("auth").get("adminHash").put(await sha256(pin));
         return {ok:true, first:true};
       }
       return {ok:false, first:false};
     };
-
     const requireAdmin = async (pin)=>{
       const stored = await getAdminHash();
       if(!stored) return {ok:false, reason:"EMPTY"};
-      const h = await sha256(pin);
-      return {ok: h===stored, reason: h===stored ? "OK":"BAD"};
-    };
       const h = await sha256(pin);
       return {ok: h===stored, reason: h===stored ? "OK":"BAD"};
     };
@@ -335,8 +310,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
   const code = prompt("أدخل كود إعادة التعيين:");
   if(code !== "95359513"){ say("الكود غير صحيح"); return; }
   if(!confirm("هل تريد إعادة تعيين رقم المدير؟")) return;
-  try{ ref.get("auth").get("adminHash").put(""); }catch(e){}
-  localStorage.removeItem(`tq_adminHash_${branch()}`);
+  ref.get("auth").get("adminHash").put("");
   $("#adminPin").value = "";
   say("تم مسح رقم المدير ✅ أدخل رقم جديد ثم اضغط (حفظ رقم المدير)");
 };
@@ -689,14 +663,53 @@ $("#requestNext").onclick = async ()=>{
     async function setLastResult(kind){
       const auth = await requireStaff();
       if(!auth) return;
-      const nowCur = await new Promise(res=> ref.get("current").once(res));
-      const curNum = (nowCur && (nowCur.number ?? nowCur.num)) ? String(nowCur.number ?? nowCur.num) : "--";
-      if(!curNum || curNum==="--"){
-        say("لا يوجد رقم حالي لتسجيل النتيجة");
+      const staffData = auth.data || {};
+
+      // الرقم المختار للتقييم (إن وجد) وإلا رقم الحالي
+      const pickEl = $("#gradeNum");
+      const picked = pickEl ? (pickEl.value || "").trim() : "";
+      const cur = await new Promise(res=> ref.get("current").once(res));
+      const num = (picked || String(cur?.number||"")).trim();
+
+      if(!num){
+        say("اختر رقم للتقييم أو نادِ رقم أولاً");
         return;
       }
-      // تحديث نتيجة الرقم الحالي فقط
-      ref.get("current").put({ result: kind, resultAt: Date.now(), resultBy: auth.u || "" });
+
+      // النطاق (من/إلى)
+      const ov = parseOverrideRange();
+      const n = parseInt(num, 10);
+      const rf = ov ? ov.from : staffData?.rangeFrom;
+      const rt = ov ? ov.to : staffData?.rangeTo;
+      if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
+        const from = parseInt(rf,10), to = parseInt(rt,10);
+        if(!Number.isFinite(n) || n < from || n > to){
+          say(`هذا الموظف مسموح له بالأرقام من ${from} إلى ${to} فقط`);
+          return;
+        }
+        // تحديث قائمة الأرقام (gradeNum) لتكون ضمن النطاق
+        if(pickEl){
+          const curVal = pickEl.value;
+          pickEl.innerHTML = `<option value="">اختر رقم…</option>` + Array.from({length:(to-from+1)},(_,i)=>{
+            const v = String(from+i);
+            return `<option value="${v}">${v}</option>`;
+          }).join("");
+          if(curVal && n>=from && n<=to) pickEl.value = curVal;
+          else if(num) pickEl.value = String(n);
+        }
+      }
+
+      const gender = ($("#gender")?.value || "").trim(); // حسب اختيار الموظف
+      const now = Date.now();
+
+      // 1) خزّن النتيجة لهذا الرقم لتلوين المربعات في شاشة العرض
+      ref.get("results").get(String(n)).put({ result: kind, gender, ts: now, by: auth.u || "" });
+
+      // 2) لو الرقم هو الحالي، حدّث current أيضًا (للكرت الكبير)
+      if(cur && String(cur.number||"").trim() === String(n)){
+        ref.get("current").put({ ...cur, result: kind, resultAt: now, resultBy: auth.u || "" });
+      }
+
       say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
     }
 
@@ -736,18 +749,20 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
       const card = document.querySelector(".bigNumberCard");
       if(card){
-        card.classList.remove("pass","fail");
+        card.classList.remove("pass","fail","absent");
         if(c.result==="pass") card.classList.add("pass");
         else if(c.result==="fail") card.classList.add("fail");
+        else if(c.result==="absent") card.classList.add("absent");
       }
       const numKey = String(c.number||"").trim();
       if(numKey){
         ref.get("results").get(numKey).once((r)=>{
           const card2 = document.querySelector(".bigNumberCard");
           if(!card2) return;
-          if(card2.classList.contains("pass") || card2.classList.contains("fail")) return;
+          if(card2.classList.contains("pass") || card2.classList.contains("fail") || card2.classList.contains("absent")) return;
           if(r?.result==="pass") card2.classList.add("pass");
           else if(r?.result==="fail") card2.classList.add("fail");
+          else if(r?.result==="absent") card2.classList.add("absent");
         });
       }
       $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
