@@ -65,7 +65,8 @@
           </select>
           <div class="btns"><button class="primary" id="callNext">نداء</button>
           <button class="btn" id="requestNext">طلب التالي</button>
-</div>
+          <button class="btn success" id="passBtn">ناجح</button>
+          <button class="btn danger" id="failBtn">راسب</button></div>
           <small class="help" style="margin-top:10px">الملاحظة من صلاحيات المدير فقط ✅</small>
         </div>
       </div>
@@ -73,12 +74,7 @@
       <div class="card">
         <div class="hd">آخر رقم (للتأكد)</div>
         <div class="bd" style="text-align:center">
-          <div class="bigNumberCard" id="lastNumCard"><p class="bigNumber" id="currentNum">--</p></div>
-          <div class="btns" style="margin-top:10px;justify-content:center">
-            <button class="btn success" id="passBtn">ناجح</button>
-            <button class="btn warn" id="absentBtn">غياب</button>
-            <button class="btn danger" id="failBtn">راسب</button>
-          </div>
+          <div class="bigNumberCard"><p class="bigNumber" id="currentNum">--</p></div>
           <small class="help">شاشة العرض هي الشاشة الرسمية.</small>
         </div>
       </div>
@@ -104,7 +100,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-  <script src="./app.js?v=22"></script>
+  <script src="./app.js?v=21"></script>
   <script>window.TQ.initStaff();</script>
 
 <script>
