@@ -81,75 +81,7 @@ ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:
 ref.get("results").put({}); });
   }
 
-  
-
-  // ======= Daily Stats (per branch) =======
-  function dayKey(){
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const da = String(d.getDate()).padStart(2,"0");
-    return `${y}-${m}-${da}`;
-  }
-
-  function blankStats(){
-    return { date: dayKey(), men:0, women:0, total:0, pass:0, absent:0, fail:0 };
-  }
-
-  function ensureStats(ref){
-    ref.get("dailyStats").once((s)=>{
-      if(!s || !s.date){
-        ref.get("dailyStats").put(blankStats());
-        return;
-      }
-      if(String(s.date) !== dayKey()){
-        // يوم جديد: تصفير تلقائي للإحصائيات
-        ref.get("dailyStats").put(blankStats());
-      }
-    });
-  }
-
-  function bumpCallStats(ref, gender){
-    ensureStats(ref);
-    ref.get("dailyStats").once((s)=>{
-      s = s || blankStats();
-      if(String(s.date) !== dayKey()) s = blankStats();
-      if(gender === "men") s.men = (s.men||0)+1;
-      if(gender === "women") s.women = (s.women||0)+1;
-      s.total = (s.men||0) + (s.women||0);
-      ref.get("dailyStats").put(s);
-    });
-  }
-
-  function bumpResultStats(ref, newKind, oldKind){
-    ensureStats(ref);
-    ref.get("dailyStats").once((s)=>{
-      s = s || blankStats();
-      if(String(s.date) !== dayKey()) s = blankStats();
-
-      const dec = (k)=>{
-        if(k==="pass") s.pass = Math.max(0,(s.pass||0)-1);
-        else if(k==="absent") s.absent = Math.max(0,(s.absent||0)-1);
-        else if(k==="fail") s.fail = Math.max(0,(s.fail||0)-1);
-      };
-      const inc = (k)=>{
-        if(k==="pass") s.pass = (s.pass||0)+1;
-        else if(k==="absent") s.absent = (s.absent||0)+1;
-        else if(k==="fail") s.fail = (s.fail||0)+1;
-      };
-
-      if(oldKind && oldKind!==newKind) dec(oldKind);
-      if(newKind) inc(newKind);
-
-      ref.get("dailyStats").put(s);
-    });
-  }
-
-  function resetStats(ref){
-    ref.get("dailyStats").put(blankStats());
-  }
-
-function setConn(el, ok){
+  function setConn(el, ok){
     if(!el) return;
     el.textContent = ok ? "متصل ✅" : "غير متصل…";
     el.style.color = ok ? "#0b7a2b" : "#8a4b00";
@@ -189,7 +121,6 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
-    ensureStats(ref);
 
     
 
@@ -198,19 +129,6 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
     listenConn(gun, $("#conn"), ref);
 
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
-
-    // عرض إحصائيات اليوم (الفرع الحالي)
-    ref.get("dailyStats").on((st)=>{
-      st = st || {};
-      if($("#statsDate")) $("#statsDate").textContent = st.date || "";
-      if($("#statsMen")) $("#statsMen").textContent = st.men ?? 0;
-      if($("#statsWomen")) $("#statsWomen").textContent = st.women ?? 0;
-      if($("#statsTotal")) $("#statsTotal").textContent = st.total ?? ((st.men||0)+(st.women||0));
-      if($("#statsPass")) $("#statsPass").textContent = st.pass ?? 0;
-      if($("#statsAbsent")) $("#statsAbsent").textContent = st.absent ?? 0;
-      if($("#statsFail")) $("#statsFail").textContent = st.fail ?? 0;
-    });
-
 
     ref.get("settings").on((s)=>{
       if(!s) return;
@@ -364,17 +282,24 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
 };
 
     $("#saveAdminPin").onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("رقم المدير لا يقل عن 4 أرقام"); return; }
-      const first = await setAdminIfEmpty(pin);
-      if(first.ok && first.first){ say("تم حفظ رقم المدير لأول مرة ✅"); return; }
-      const chk = await requireAdmin(pin);
-      if(chk.ok){
-        const priv = document.querySelector("#adminPrivate");
-        if(priv) priv.classList.remove("isLocked");
-      }
-      say(chk.ok ? "رقم المدير صحيح ✅ (تم فتح الخصوصية)" : "رقم المدير غير صحيح");
-    };
+  const pin = ($("#adminPin").value || "").trim();
+  if(pin.length < 4){ say("أدخل رقم مدير (4 أرقام أو أكثر)"); return; }
+
+  // إذا ما كان فيه رقم مدير سابق لهذا الفرع → احفظه الآن
+  const first = await setAdminIfEmpty(pin);
+  if(first.ok && first.first){
+    say("تم حفظ رقم المدير ✅");
+    return;
+  }
+
+  // غير ذلك: تحقق من صحة الرقم
+  const chk = await requireAdmin(pin);
+  if(chk.ok){
+    say("رقم المدير صحيح ✅");
+  }else{
+    say("رقم المدير غير صحيح ❌");
+  }
+};
 
     const unlockPrivate = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
@@ -389,12 +314,25 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
     $("#adminPin").addEventListener("keyup", (e)=>{ if(e.key==="Enter") unlockPrivate(); });
 
     $("#resetAdminPin").onclick = async ()=>{
-  const code = prompt("أدخل كود إعادة التعيين:");
-  if(code !== "95359513"){ say("الكود غير صحيح"); return; }
-  if(!confirm("هل تريد إعادة تعيين رقم المدير؟")) return;
-  ref.get("auth").get("adminHash").put("");
+  // إعادة تعيين رقم المدير: تتطلب معرفة الرقم الحالي
+  const oldPin = (prompt("أدخل رقم المدير الحالي:") || "").trim();
+  if(!oldPin) return;
+
+  const okOld = await requireAdmin(oldPin);
+  if(!okOld.ok){
+    say("رقم المدير الحالي غير صحيح ❌");
+    return;
+  }
+
+  const newPin = (prompt("أدخل رقم المدير الجديد (4 أرقام أو أكثر):") || "").trim();
+  if(newPin.length < 4){
+    say("رقم جديد غير صالح");
+    return;
+  }
+
+  ref.get("auth").get("adminHash").put(await sha256(newPin));
   $("#adminPin").value = "";
-  say("تم مسح رقم المدير ✅ أدخل رقم جديد ثم اضغط (حفظ رقم المدير)");
+  say("تم إعادة تعيين رقم المدير ✅");
 };
 
 
@@ -526,17 +464,6 @@ ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:
 ref.get("results").put({});
       say("تم تصفير النظام ✅");
     };
-
-    // تصفير الإحصائيات فقط (اليوم/الفرع الحالي)
-    $("#resetStats") && ($("#resetStats").onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-      if(!confirm("تصفير الإحصائيات اليومية فقط لهذا الفرع؟")) return;
-      resetStats(ref);
-      say("تم تصفير الإحصائيات ✅");
-    });
-
   }
 
   // ========= Staff =========
@@ -555,7 +482,6 @@ ref.get("results").put({});
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
-    ensureStats(ref);
 
     
 
@@ -682,7 +608,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
   if(prev && prev.number && prev.number !== "--" && (prev.gender === "men" || prev.gender === "women")){
     const bucketPrev = (prev.gender === "women") ? "women" : "men";
     const key = String(now); // مفتاح واضح
-    ref.get("history").get(bucketPrev).get(key).put({ number: prev.number, staff: prev.staff || "", ts: now, result: prev.result || "", resultAt: prev.resultAt || 0, resultBy: prev.resultBy || "" });
+    ref.get("history").get(bucketPrev).get(key).put({ number: prev.number, staff: prev.staff || "", ts: now });
 
     // تقليم السجل بعد لحظات لضمان وصول البيانات
     setTimeout(()=>{
@@ -701,9 +627,6 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
 
   // 2) تحديث الرقم الحالي
   ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
-  // إحصائيات اليوم: نداءات (رجال/نساء)
-  bumpCallStats(ref, gender);
-
   // تحديث "التالي" للموظف إذا كان ضمن نطاقه
       const ov2 = parseOverrideRange();
       const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
@@ -768,8 +691,6 @@ $("#requestNext").onclick = async ()=>{
       }
       // تحديث نتيجة الرقم الحالي فقط
       ref.get("current").put({ result: kind, resultAt: Date.now(), resultBy: auth.u || "" });
-      // إحصائيات اليوم: نجاح/غياب/رسوب (مع تعديل في حال تغيّر الاختيار)
-      bumpResultStats(ref, kind, nowCur?.result || "");
       say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
     }
 
@@ -790,7 +711,6 @@ $("#requestNext").onclick = async ()=>{
     const gun = makeGun();
     const ref = refFor(gun, b);
     ensure(ref);
-    ensureStats(ref);
 
     
 
@@ -974,22 +894,14 @@ async function initChatAdmin(ref, requireAdminFn){
     const u = (selEl.value || "").trim();
     if(!u) return;
     if(!confirm(`مسح الدردشة مع ${u} ؟`)) return;
-
     const path = ref.get("chat").get("private").get(u).get("messages");
-
-    // حذف فعلي: نمسح كل عناصر الـ set (keys) ثم نعمل تفريغ احتياطي
+    // حذف فعلي: Gun يحتاج put(null) لكل رسالة داخل الـ set
     path.map().once((data, key)=>{
-      if(!key || key === "_") return;
+      if(!key || key === "_" ) return;
       path.get(key).put(null);
     });
-
-    // تفريغ احتياطي (بعض متصفحات/Peers قد تتأخر)
-    setTimeout(()=>{
-      path.put(null);
-      path.put([]);
-      attach(u);
-      say("تم مسح الدردشة ✅");
-    }, 450);
+    // تحديث الواجهة بعد قليل
+    setTimeout(()=> attach(u), 350);
   };
 
   attach("");
