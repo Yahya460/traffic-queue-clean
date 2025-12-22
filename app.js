@@ -133,7 +133,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
 
     ref.get("settings").on((s)=>{
-      historyLimit = Math.max(3, Math.min(60, parseInt(s?.historyLimit || 15,10)));
+      historyLimit = Math.max(3, Math.min(60, parseInt((s && s.historyLimit) || 15,10)));
       if(!s) return;
       $("#instituteName").value = s.instituteName || "";
       $("#historyLimit").value = s.historyLimit || 15;
@@ -145,7 +145,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
     ref.get("centerImage").on((img)=>{
       const holder = $("#imgHolder");
       const name = $("#imgName");
-      if(img?.dataUrl){
+      if((img && img.dataUrl)){
         holder.innerHTML = `<img alt="center" src="${img.dataUrl}">`;
         name.textContent = img.name ? `الصورة: ${img.name}` : "الصورة مفعّلة";
       }else{
@@ -198,13 +198,13 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
         const uEnc = inp.getAttribute('data-from');
         const u = decodeURIComponent(uEnc);
         const d = (obj && obj[u]) ? obj[u] : {};
-        inp.value = (d.rangeFrom ?? "");
+        inp.value = ((d.rangeFrom==null) ? "" : d.rangeFrom);
       });
       list.querySelectorAll('[data-to]').forEach(inp=>{
         const uEnc = inp.getAttribute('data-to');
         const u = decodeURIComponent(uEnc);
         const d = (obj && obj[u]) ? obj[u] : {};
-        inp.value = (d.rangeTo ?? "");
+        inp.value = ((d.rangeTo==null) ? "" : d.rangeTo);
       });
 ;
 
@@ -216,8 +216,8 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
           const u = decodeURIComponent(uEnc);
     const fEl = list.querySelector(`[data-from="${uEnc}"]`);
     const tEl = list.querySelector(`[data-to="${uEnc}"]`);
-    const from = parseInt((fEl?.value||"").trim(),10);
-    const to = parseInt((tEl?.value||"").trim(),10);
+    const from = parseInt(((fEl && fEl.value)||"").trim(),10);
+    const to = parseInt(((tEl && tEl.value)||"").trim(),10);
     if(!Number.isFinite(from) || !Number.isFinite(to) || from>to){
       say("أدخل نطاق صحيح (من أقل أو يساوي إلى)");
       return;
@@ -235,7 +235,7 @@ list.querySelectorAll("[data-reset-next]").forEach(btn=>{
           const u = decodeURIComponent(uEnc);
     // أعد التالي إلى "من"
     ref.get("staffUsers").get(u).once((d)=>{
-      const from = parseInt(d?.rangeFrom,10);
+      const from = parseInt((d && d.rangeFrom),10);
       if(!Number.isFinite(from)){ say("حدد نطاق (من/إلى) أولاً"); return; }
       ref.get("staffUsers").get(u).put({ nextNumber: from, ts: Date.now() });
       say("تم تصفير التالي ✅");
@@ -265,7 +265,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
           if(!nu || nu===oldU) return;
           ref.get("staffUsers").get(oldU).once((data)=>{
             if(!data) return;
-            ref.get("staffUsers").get(nu).put({ pinHash: data.pinHash || "", rangeFrom: data.rangeFrom ?? "", rangeTo: data.rangeTo ?? "", nextNumber: data.nextNumber ?? "", ts: Date.now() });
+            ref.get("staffUsers").get(nu).put({ pinHash: data.pinHash || "", rangeFrom: (data.rangeFrom==null ? "" : data.rangeFrom), rangeTo: (data.rangeTo==null ? "" : data.rangeTo), nextNumber: (data.nextNumber==null ? "" : data.nextNumber), ts: Date.now() });
             ref.get("staffUsers").get(oldU).put(null);
             say("تم تغيير اسم المستخدم ✅");
           });
@@ -452,7 +452,8 @@ ref.get("results").put({});
   // ========= Staff =========
   async function initStaff(){
     function parseOverrideRange(){
-      const raw = ($('#staffRangeOverride')?.value || '').trim();
+      const elSRO = $('#staffRangeOverride');
+      const raw = ((elSRO && elSRO.value) || '').trim();
       if(!raw) return null;
       const m = raw.match(/^(\d+)\s*[-–]\s*(\d+)$/);
       if(!m) return null;
@@ -477,7 +478,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
     const say = (t)=>{ const msg=$("#msg"); if(msg) msg.textContent=t; };
 
     ref.get("settings").on((s)=>{
-      historyLimit = Math.max(3, Math.min(60, parseInt(s?.historyLimit || 15,10))); if(s?.instituteName) $("#instName").textContent = s.instituteName; });
+      historyLimit = Math.max(3, Math.min(60, parseInt((s && s.historyLimit) || 15,10))); if((s && s.instituteName)) $("#instName").textContent = s.instituteName; });
 
     const userSel = $("#username");
     ref.get("staffUsers").on((obj)=>{
@@ -488,7 +489,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
     });
 
     ref.get("current").on((c)=>{
-      if(c) $("#currentNum").textContent = c.number ?? "--";
+      if(c) $("#currentNum").textContent = (c.number==null ? "--" : c.number);
       // تلوين إطار "آخر رقم" حسب النتيجة (ناجح/راسب/غياب)
       const card = $("#lastNumCard") || document.querySelector(".bigNumberCard");
       if(card){
@@ -574,8 +575,8 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
       // تقييد النطاق (من/إلى) إن وُجد
       const ov = parseOverrideRange();
       const n = parseInt(num, 10);
-      const rf = ov ? ov.from : staffData?.rangeFrom;
-      const rt = ov ? ov.to : staffData?.rangeTo;
+      const rf = ov ? ov.from : (staffData && staffData.rangeFrom);
+      const rt = ov ? ov.to : (staffData && staffData.rangeTo);
       if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
         const from = parseInt(rf,10), to = parseInt(rt,10);
         if(!Number.isFinite(n) || n < from || n > to){
@@ -585,7 +586,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
       }
 
       const settings = await new Promise(res=> ref.get("settings").once(res));
-  const limit = Math.max(3, Math.min(60, parseInt(settings?.historyLimit || 15,10)));
+  const limit = Math.max(3, Math.min(60, parseInt((settings && settings.historyLimit) || 15,10)));
 
   const prev = await new Promise(res=> ref.get("current").once(res));
   const now = Date.now();
@@ -615,11 +616,11 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
   ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
   // تحديث "التالي" للموظف إذا كان ضمن نطاقه
       const ov2 = parseOverrideRange();
-      const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
-      const rt2 = ov2 ? ov2.to : staffData?.rangeTo;
+      const rf2 = ov2 ? ov2.from : (staffData && staffData.rangeFrom);
+      const rt2 = ov2 ? ov2.to : (staffData && staffData.rangeTo);
       if(rf2 !== undefined && rf2 !== null && rt2 !== undefined && rt2 !== null && rf2 !== "" && rt2 !== ""){
         const from2 = parseInt(rf2,10), to2 = parseInt(rt2,10);
-        const nextNow = Number.isFinite(parseInt(staffData?.nextNumber,10)) ? parseInt(staffData.nextNumber,10) : from2;
+        const nextNow = Number.isFinite(parseInt((staffData && staffData.nextNumber),10)) ? parseInt(staffData.nextNumber,10) : from2;
         if(Number.isFinite(n) && n >= from2 && n <= to2){
           // إذا الموظف نادى الرقم المتوقع، قدّم التالي
           if(n === nextNow){
@@ -637,15 +638,15 @@ $("#requestNext").onclick = async ()=>{
   if(!auth) return;
   const staffData = auth.data || {};
   const ov = parseOverrideRange();
-  const rf = ov ? ov.from : staffData?.rangeFrom;
-  const rt = ov ? ov.to : staffData?.rangeTo;
+  const rf = ov ? ov.from : (staffData && staffData.rangeFrom);
+  const rt = ov ? ov.to : (staffData && staffData.rangeTo);
 
   if(rf === undefined || rf === null || rt === undefined || rt === null || rf === "" || rt === ""){
     say("لا يوجد نطاق مخصص لهذا الموظف. حدده من لوحة المدير.");
     return;
   }
   const from = parseInt(rf,10), to = parseInt(rt,10);
-  let nextNow = Number.isFinite(parseInt(staffData?.nextNumber,10)) ? parseInt(staffData.nextNumber,10) : from;
+  let nextNow = Number.isFinite(parseInt((staffData && staffData.nextNumber),10)) ? parseInt(staffData.nextNumber,10) : from;
   if(nextNow < from) nextNow = from;
   if(nextNow > to){
     say("انتهى نطاقك المحدد ✅");
@@ -675,7 +676,7 @@ $("#requestNext").onclick = async ()=>{
       const pickEl = $("#gradeNum");
       const picked = pickEl ? (pickEl.value || "").trim() : "";
       const cur = await new Promise(res=> ref.get("current").once(res));
-      const num = (picked || String(cur?.number||"")).trim();
+      const num = (picked || String((cur && cur.number)||"")).trim();
 
       if(!num){
         say("اختر رقم للتقييم أو نادِ رقم أولاً");
@@ -685,8 +686,8 @@ $("#requestNext").onclick = async ()=>{
       // النطاق (من/إلى)
       const ov = parseOverrideRange();
       const n = parseInt(num, 10);
-      const rf = ov ? ov.from : staffData?.rangeFrom;
-      const rt = ov ? ov.to : staffData?.rangeTo;
+      const rf = ov ? ov.from : (staffData && staffData.rangeFrom);
+      const rt = ov ? ov.to : (staffData && staffData.rangeTo);
       if(rf !== undefined && rf !== null && rt !== undefined && rt !== null && rf !== "" && rt !== ""){
         const from = parseInt(rf,10), to = parseInt(rt,10);
         if(!Number.isFinite(n) || n < from || n > to){
@@ -705,7 +706,8 @@ $("#requestNext").onclick = async ()=>{
         }
       }
 
-      const gender = ($("#gender")?.value || "").trim(); // حسب اختيار الموظف
+      const gEl = $("#gender");
+      const gender = ((gEl && gEl.value) || "").trim(); // حسب اختيار الموظف
       const now = Date.now();
 
       // 1) خزّن النتيجة لهذا الرقم لتلوين المربعات في شاشة العرض
@@ -756,15 +758,15 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
     let historyLimit = 15;
 
     ref.get("settings").on((s)=>{
-      historyLimit = Math.max(3, Math.min(60, parseInt(s?.historyLimit || 15,10)));
-      if(s?.instituteName) $("#instName").textContent = s.instituteName;
-      $("#tickerText").textContent = s?.tickerText || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح";
+      historyLimit = Math.max(3, Math.min(60, parseInt((s && s.historyLimit) || 15,10)));
+      if((s && s.instituteName)) $("#instName").textContent = s.instituteName;
+      $("#tickerText").textContent = (s && s.tickerText) || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح";
     });
 
     let lastTs = 0;
     ref.get("current").on((c)=>{
       if(!c) return;
-      $("#curNumber").textContent = c.number ?? "--";
+      $("#curNumber").textContent = (c.number==null ? "--" : c.number);
       $("#genderLabel").textContent = c.gender === "women" ? "نساء" : (c.gender === "men" ? "رجال" : "");
       const card = document.querySelector(".bigNumberCard");
       if(card){
@@ -779,9 +781,9 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
           const card2 = document.querySelector(".bigNumberCard");
           if(!card2) return;
           if(card2.classList.contains("pass") || card2.classList.contains("fail") || card2.classList.contains("absent")) return;
-          if(r?.result==="pass") card2.classList.add("pass");
-          else if(r?.result==="fail") card2.classList.add("fail");
-          else if(r?.result==="absent") card2.classList.add("absent");
+          if((r && r.result)==="pass") card2.classList.add("pass");
+          else if((r && r.result)==="fail") card2.classList.add("fail");
+          else if((r && r.result)==="absent") card2.classList.add("absent");
         });
       }
       $("#lastCall").textContent = c.ts ? `آخر نداء: ${new Date(c.ts).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'})}` : "";
@@ -793,7 +795,7 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
 
     ref.get("note").on((n)=>{
       const span = $("#noteSpan");
-      const txt = (n?.text || "").trim();
+      const txt = ((n && n.text) || "").trim();
       span.textContent = txt || "—";
       span.style.opacity = txt ? "1" : ".55";
     });
@@ -801,7 +803,7 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
     ref.get("centerImage").on((img)=>{
       const holder = $("#centerImg");
       const wrap = $("#centerImgWrap");
-      if(img?.dataUrl){ holder.src = img.dataUrl; wrap.style.display="block"; }
+      if((img && img.dataUrl)){ holder.src = img.dataUrl; wrap.style.display="block"; }
       else { holder.src=""; wrap.style.display="none"; }
     });
 // ===== نتائج التقييم (pass/fail/absent) لتلوين المربعات =====
@@ -827,8 +829,8 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
       const store = {};
       const render = ()=>{
         const items = Object.keys(store).map(k=>store[k]).filter(Boolean).map(it=>{
-          const num = it.number ?? it.num ?? it.n ?? it;
-          const ts = it.ts ?? it.time ?? 0;
+          const num = (it && it.number!=null) ? it.number : ((it && it.num!=null) ? it.num : ((it && it.n!=null) ? it.n : it));
+          const ts = (it && it.ts!=null) ? it.ts : ((it && it.time!=null) ? it.time : 0);
           return { num: String(num), ts: ts };
         }).filter(x=>x.num && x.num !== "--");
 
@@ -1005,13 +1007,16 @@ async function initChatStaff(ref, requireStaffFn){
 
   // attach when user selected / pin provided
   const tryAttach = async ()=>{
-    const u = (document.querySelector("#username")?.value || "").trim();
-    const p = (document.querySelector("#userPin")?.value || "").trim();
+    const uEl = document.querySelector("#username");
+    const u = ((uEl && uEl.value) || "").trim();
+    const pEl = document.querySelector("#userPin");
+    const p = ((pEl && pEl.value) || "").trim();
     if(u && p) await attach();
   };
-  document.querySelector("#username")?.addEventListener("change", tryAttach);
-  document.querySelector("#userPin")?.addEventListener("input", ()=>{
-    if((document.querySelector("#userPin")?.value || "").trim().length >= 4) tryAttach();
+  const uEl2 = document.querySelector("#username"); if(uEl2) uEl2.addEventListener("change", tryAttach);
+  const pEl2 = document.querySelector("#userPin"); if(pEl2) pEl2.addEventListener("input", ()=>{
+    const pEl3 = document.querySelector("#userPin");
+    if((((pEl3 && pEl3.value) || "").trim()).length >= 4) tryAttach();
   });
 
   $("#clearChatStaff").onclick = async ()=>{
