@@ -86,10 +86,12 @@
             <div class="hint" style="margin-top:10px;color:#6b7280;font-size:13px">
               تصفير النداءات يتم على <b>الفرع الحالي</b> فقط (حسب اختيار الفرع بالأعلى).
             </div>
-            <div class="btns" style="margin-top:10px">
-              <button class="warn" id="resetCallsMen">تصفير نداءات الرجال</button>
-              <button class="warn" id="resetCallsWomen">تصفير نداءات النساء</button>
-              <button class="danger" id="resetCallsBranch">تصفير النداءات + الرقم الحالي</button>
+            <div class="btns" style="margin-top:10px;flex-wrap:wrap">
+              <button class="danger" id="resetCallsAll">تصفير النداءات (رجال/نساء/الرقم الحالي)</button>
+              <label class="pill" style="gap:8px;display:inline-flex;align-items:center">
+                <input type="checkbox" id="autoClearCalls"/>
+                مسح تلقائي يوميًا
+              </label>
             </div>
         </div>
       </div>
@@ -141,10 +143,40 @@
 </div>
     </div>
 
-    <div class="rights">جميع الحقوق محفوظة — الرقيب أول يحيى آل عبدالسلام</div>
+    <div class="supervise">إشراف: النقيب يوسف العلوي</div>
+          <div class="rights">جميع الحقوق محفوظة للرقيب أول يحيى آل عبدالسلام © 2025</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+  
+      <div class="card" id="statsCard">
+        <div class="hd">الإحصائيات</div>
+        <div class="bd">
+          <div class="hint" style="color:#6b7280;font-size:13px">
+            تُحتسب تلقائيًا عند تسجيل (ناجح/راسب/غياب) من شاشة الموظف.
+          </div>
+
+          <div class="grid2" style="margin-top:10px">
+            <div class="panelLite">
+              <div class="k">إحصائيات اليوم</div>
+              <div class="v" id="statsDaily"></div>
+              <div class="btns" style="margin-top:10px">
+                <button class="warn" id="resetStatsDaily">تصفير إحصائيات اليوم</button>
+              </div>
+            </div>
+
+            <div class="panelLite">
+              <div class="k">إحصائيات الشهر</div>
+              <div class="v" id="statsMonthly"></div>
+              <div class="btns" style="margin-top:10px">
+                <button class="warn" id="resetStatsMonthly">تصفير إحصائيات الشهر</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
   <script src="./app.js?v=21"></script>
   <script>window.TQ.initAdmin();</script>
 
@@ -165,6 +197,4 @@
 </script>
 
 </body>
-</html><button id="btnResetDisplay" class="btn-danger">
-  تصفير شاشة العرض (هذا الفرع)
-</button>
+</html>

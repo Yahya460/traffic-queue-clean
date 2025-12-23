@@ -62,10 +62,11 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
 
   function defaults(){
     return {
-      settings:{ historyLimit:15, instituteName:"معهد السلامة المرورية", tickerText:"يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح" },
+      settings:{ historyLimit:15, instituteName:"معهد السلامة المرورية", tickerText:"يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح", autoClearCalls:false },
       current:{ number:"--", gender:"", staff:"", ts:0 },
       note:{ text:"", staff:"", ts:0 },
       history:{ men:{}, women:{} },
+      stats:{ daily:{}, monthly:{} },
       centerImage:{ dataUrl:"", name:"", ts:0 },
       auth:{ adminHash:"" },
       staffUsers:{}
@@ -114,6 +115,19 @@ ref.get("results").put({}); });
 }
 
 function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+
+function dayKey(d=new Date()){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const da=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${da}`;
+}
+function monthKey(d=new Date()){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  return `${y}-${m}`;
+}
 
   // ========= Admin =========
   async function initAdmin(){
@@ -325,10 +339,15 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       const first = await setAdminIfEmpty(pin);
       if(first.ok && first.first){ say("تم تعيين رقم المدير ✅ اضغط حفظ الإعدادات مرة أخرى"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      // حفظ الإعدادات مع الحفاظ على الحقول الأخرى (مثل المسح التلقائي)
+      const prevSettings = await new Promise(res=> ref.get("settings").once(res));
+      const autoClear = ($("#autoClearCalls") && typeof $("#autoClearCalls").checked==="boolean") ? $("#autoClearCalls").checked : (prevSettings && prevSettings.autoClearCalls) || false;
       ref.get("settings").put({
+        ...(prevSettings||{}),
         instituteName: ($("#instituteName").value || "").trim() || "معهد السلامة المرورية",
         historyLimit: Math.max(3, Math.min(60, parseInt($("#historyLimit").value || "15",10))),
-        tickerText: ($("#tickerText").value || "").trim() || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح"
+        tickerText: ($("#tickerText").value || "").trim() || "يرجى الالتزام بالهدوء وانتظار دوركم، مع تمنياتنا لكم بالتوفيق والنجاح",
+        autoClearCalls: !!autoClear
       });
       say("تم حفظ الإعدادات ✅");
     };
@@ -405,25 +424,7 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
     };
 
-    $("#resetCallsMen").onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-      if(!confirm("أكيد تريد تصفير نداءات الرجال لهذا الفرع؟")) return;
-      await clearBucket("men");
-      say("تم تصفير نداءات الرجال ✅");
-    };
-
-    $("#resetCallsWomen").onclick = async ()=>{
-      const pin = ($("#adminPin").value || "").trim();
-      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
-      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
-      if(!confirm("أكيد تريد تصفير نداءات النساء لهذا الفرع؟")) return;
-      await clearBucket("women");
-      say("تم تصفير نداءات النساء ✅");
-    };
-
-    $("#resetCallsBranch").onclick = async ()=>{
+    $("#resetCallsAll").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
@@ -434,7 +435,80 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       say("تم تصفير النداءات والرقم الحالي ✅");
     };
 
-    $("#resetAll").onclick = async ()=>{
+    // مزامنة خيار (مسح تلقائي يوميًا) ضمن إعدادات الفرع
+    const autoEl = $("#autoClearCalls");
+    if(autoEl){
+      ref.get("settings").once((s)=>{
+        try{ autoEl.checked = !!(s && s.autoClearCalls); }catch(e){}
+      });
+      autoEl.onchange = async ()=>{
+        const pin = ($("#adminPin").value || "").trim();
+        if(pin.length < 4){ say("أدخل رقم المدير"); autoEl.checked = !autoEl.checked; return; }
+        if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); autoEl.checked = !autoEl.checked; return; }
+        const prevSettings = await new Promise(res=> ref.get("settings").once(res));
+        ref.get("settings").put({ ...(prevSettings||{}), autoClearCalls: !!autoEl.checked });
+        say(autoEl.checked ? "تم تفعيل المسح التلقائي ✅" : "تم إيقاف المسح التلقائي ✅");
+      };
+    };
+
+
+    
+    function formatStatsBox(obj){
+      const men = (obj && obj.men) ? obj.men : {pass:0,fail:0,absent:0};
+      const women = (obj && obj.women) ? obj.women : {pass:0,fail:0,absent:0};
+      const menT = (men.pass||0)+(men.fail||0)+(men.absent||0);
+      const womenT = (women.pass||0)+(women.fail||0)+(women.absent||0);
+      const total = menT + womenT;
+      return `
+        <div style="margin-top:6px">الإجمالي: <b>${total}</b> | رجال: <b>${menT}</b> | نساء: <b>${womenT}</b></div>
+        <div style="margin-top:6px">رجال — نجاح: <b>${men.pass||0}</b> | رسوب: <b>${men.fail||0}</b> | غياب: <b>${men.absent||0}</b></div>
+        <div style="margin-top:6px">نساء — نجاح: <b>${women.pass||0}</b> | رسوب: <b>${women.fail||0}</b> | غياب: <b>${women.absent||0}</b></div>
+      `;
+    }
+
+    function renderAdminStats(stats){
+      const dk = dayKey();
+      const mk = monthKey();
+      const daily = (stats && stats.daily && stats.daily[dk]) ? stats.daily[dk] : { men:{pass:0,fail:0,absent:0}, women:{pass:0,fail:0,absent:0} };
+      const monthly = (stats && stats.monthly && stats.monthly[mk]) ? stats.monthly[mk] : { men:{pass:0,fail:0,absent:0}, women:{pass:0,fail:0,absent:0} };
+      const dEl = $("#statsDaily");
+      const mEl = $("#statsMonthly");
+      if(dEl) dEl.innerHTML = `<div class="hint">(${dk})</div>` + formatStatsBox(daily);
+      if(mEl) mEl.innerHTML = `<div class="hint">(${mk})</div>` + formatStatsBox(monthly);
+    }
+
+    // تحديث مباشر عند تغيّر stats
+    ref.get("stats").on((s)=>{ renderAdminStats(s||{}); });
+
+    $("#resetStatsDaily").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      if(!confirm("أكيد تريد تصفير إحصائيات اليوم لهذا الفرع؟")) return;
+      const dk = dayKey();
+      const node = ref.get("stats");
+      const s = await new Promise(res=> node.once(res)) || {};
+      s.daily = s.daily || {};
+      delete s.daily[dk];
+      node.put(s);
+      say("تم تصفير إحصائيات اليوم ✅");
+    };
+
+    $("#resetStatsMonthly").onclick = async ()=>{
+      const pin = ($("#adminPin").value || "").trim();
+      if(pin.length < 4){ say("أدخل رقم المدير"); return; }
+      if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
+      if(!confirm("أكيد تريد تصفير إحصائيات الشهر لهذا الفرع؟")) return;
+      const mk = monthKey();
+      const node = ref.get("stats");
+      const s = await new Promise(res=> node.once(res)) || {};
+      s.monthly = s.monthly || {};
+      delete s.monthly[mk];
+      node.put(s);
+      say("تم تصفير إحصائيات الشهر ✅");
+    };
+
+$("#resetAll").onclick = async ()=>{
       const pin = ($("#adminPin").value || "").trim();
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
@@ -449,7 +523,37 @@ ref.get("results").put({});
     };
   }
 
-  // ========= Staff =========
+  
+  function autoClearIfNewDay(ref){
+    return new Promise((resolve)=>{
+      ref.get("settings").once(async (s)=>{
+        try{
+          if(!s || !s.autoClearCalls){ resolve(false); return; }
+          const k = "tq_last_auto_clear_" + branch;
+          const last = localStorage.getItem(k) || "";
+          const today = dayKey();
+          if(last === today){ resolve(false); return; }
+          // clear both buckets + reset current
+          const clearBucket = (bucket)=> new Promise((res)=>{
+            ref.get("history").get(bucket).once((obj)=>{
+              try{
+                if(obj){
+                  Object.keys(obj).filter(x=>x!=="_").forEach(x=> ref.get("history").get(bucket).get(x).put(null));
+                }
+              }finally{ res(true); }
+            });
+          });
+          await clearBucket("men");
+          await clearBucket("women");
+          ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
+          localStorage.setItem(k, today);
+          resolve(true);
+        }catch(e){ resolve(false); }
+      });
+    });
+  }
+
+// ========= Staff =========
   async function initStaff(){
     function parseOverrideRange(){
       const raw = ($('#staffRangeOverride')?.value || '').trim();
@@ -566,6 +670,9 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
       const username = auth.u;
       const staffData = auth.data || {};
 
+      // مسح تلقائي يوميًا للنداءات (إن كان مفعّل)
+      await autoClearIfNewDay(ref);
+
       const num = ($("#ticketNum").value || "").trim();
       const gender = $("#gender").value;
       if(!num){ say("أدخل رقم المتدرب"); return; }
@@ -666,7 +773,28 @@ $("#requestNext").onclick = async ()=>{
 };
 
     // ========= نتيجة آخر رقم (ناجح/راسب/غياب) =========
-    async function setLastResult(kind){
+    async 
+    async function bumpStats(gender, kind){
+      if(!(gender==="men"||gender==="women")) return;
+      const dk = dayKey();
+      const mk = monthKey();
+      const node = ref.get("stats");
+      const stats = await new Promise(res=> node.once(res));
+      const s = stats && typeof stats==="object" ? stats : { daily:{}, monthly:{} };
+      s.daily = s.daily || {};
+      s.monthly = s.monthly || {};
+      s.daily[dk] = s.daily[dk] || { men:{pass:0,fail:0,absent:0}, women:{pass:0,fail:0,absent:0} };
+      s.monthly[mk] = s.monthly[mk] || { men:{pass:0,fail:0,absent:0}, women:{pass:0,fail:0,absent:0} };
+      const d = s.daily[dk];
+      const m = s.monthly[mk];
+      d[gender] = d[gender] || {pass:0,fail:0,absent:0};
+      m[gender] = m[gender] || {pass:0,fail:0,absent:0};
+      d[gender][kind] = (d[gender][kind]||0) + 1;
+      m[gender][kind] = (m[gender][kind]||0) + 1;
+      node.put(s);
+    }
+
+async function setLastResult(kind){
       const auth = await requireStaff();
       if(!auth) return;
       const staffData = auth.data || {};
@@ -726,6 +854,7 @@ $("#requestNext").onclick = async ()=>{
         ref.get("current").put({ ...cur, result: kind, resultAt: now, resultBy: auth.u || "" });
       }
 
+      await bumpStats(cur.gender, kind);
       say(kind==="pass" ? "تم تسجيل: ناجح ✅" : (kind==="fail" ? "تم تسجيل: راسب ✅" : "تم تسجيل: غياب ✅"));
     }
 

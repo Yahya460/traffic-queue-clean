@@ -219,3 +219,15 @@ small.help{display:block;margin-top:8px;color:rgba(11,34,48,.70);font-weight:700
 .tile.pass{border-color: rgba(33,150,243,.95) !important; border-width:4px !important;}
 .tile.fail{border-color: rgba(220,38,38,.95) !important; border-width:4px !important;}
 .tile.absent{border-color: rgba(234,179,8,.95) !important; border-width:4px !important;}
+
+
+/* Supervising line */
+.supervise{font-weight:900;text-align:center;margin-top:6px;margin-bottom:2px}
+
+
+/* Admin stats layout */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:800px){.grid2{grid-template-columns:1fr}}
+.panelLite{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:12px}
+.panelLite .k{font-weight:800;margin-bottom:6px}
+.panelLite .v{font-size:14px;line-height:1.6}
