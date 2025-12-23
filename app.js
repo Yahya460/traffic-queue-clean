@@ -74,12 +74,18 @@ const branchLabel = (code)=> BRANCH_NAME[code] || code;
   }
 
   function ensure(ref){
-    ref.once((d)=>{ if(!d || !d.settings) ref.put(defaults());
-// مسح السجلات بالكامل (رجال/نساء) + الحالي + النتيجة
-ref.get("historyMen").put([]);
-ref.get("historyWomen").put([]);
-ref.get("current").put({ number:"", gender:"", at:0, by:"", result:"", resultAt:0, resultBy:"" });
-ref.get("results").put({}); });
+    // Initialize missing structure only (do NOT clear existing data)
+    ref.once((d)=>{
+      if(!d || !d.settings){
+        ref.put(defaults());
+        return;
+      }
+      if(!d.history) ref.get("history").put({ men:{}, women:{} });
+      if(!d.stats) ref.get("stats").put({ daily:{}, monthly:{} });
+      if(!d.historyReset) ref.get("historyReset").put({ men:0, women:0 });
+      if(!d.current) ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
+      if(!d.note) ref.get("note").put({ text:"", staff:"", ts:0 });
+    });
   }
 
   function setConn(el, ok){
@@ -429,11 +435,23 @@ list.querySelectorAll("[data-del]").forEach(btn=>{
       if(pin.length < 4){ say("أدخل رقم المدير"); return; }
       if(!(await requireAdmin(pin)).ok){ say("رقم المدير غير صحيح"); return; }
       if(!confirm("أكيد تريد تصفير (رجال + نساء) + الرقم الحالي لهذا الفرع؟")) return;
-      await clearBucket("men");
-      await clearBucket("women");
+
+      const ts = Date.now();
+      // Fast clear marker (solves iOS/slow sync issues + women's list not clearing)
+      ref.get("historyReset").get("men").put(ts);
+      ref.get("historyReset").get("women").put(ts);
+
+      // Reset current immediately
       resetCurrent();
+
+      // Optional cleanup in background
+      setTimeout(()=>{
+        clearBucket("men");
+        clearBucket("women");
+      }, 50);
+
       say("تم تصفير النداءات والرقم الحالي ✅");
-    };
+    };;
 
     // مزامنة خيار (مسح تلقائي يوميًا) ضمن إعدادات الفرع
     const autoEl = $("#autoClearCalls");
@@ -526,26 +544,34 @@ ref.get("results").put({});
   
   function autoClearIfNewDay(ref){
     return new Promise((resolve)=>{
-      ref.get("settings").once(async (s)=>{
+      ref.get("settings").once((s)=>{
         try{
           if(!s || !s.autoClearCalls){ resolve(false); return; }
           const k = "tq_last_auto_clear_" + branch;
           const last = localStorage.getItem(k) || "";
           const today = dayKey();
           if(last === today){ resolve(false); return; }
-          // clear both buckets + reset current
-          const clearBucket = (bucket)=> new Promise((res)=>{
-            ref.get("history").get(bucket).once((obj)=>{
-              try{
-                if(obj){
-                  Object.keys(obj).filter(x=>x!=="_").forEach(x=> ref.get("history").get(bucket).get(x).put(null));
-                }
-              }finally{ res(true); }
-            });
-          });
-          await clearBucket("men");
-          await clearBucket("women");
+
+          // Fast + reliable: mark reset timestamp (avoids slow per-key deletes)
+          const ts = Date.now();
+          ref.get("historyReset").get("men").put(ts);
+          ref.get("historyReset").get("women").put(ts);
           ref.get("current").put({ number:"--", gender:"", staff:"", ts:0, result:"", resultAt:0, resultBy:"" });
+
+          // Optional cleanup in background (doesn't block calling next)
+          setTimeout(()=>{
+            const cleanup = (bucket)=> new Promise((res)=>{
+              ref.get("history").get(bucket).once((obj)=>{
+                try{
+                  if(obj){
+                    Object.keys(obj).filter(x=>x!=="_").forEach(x=> ref.get("history").get(bucket).get(x).put(null));
+                  }
+                }finally{ res(true); }
+              });
+            });
+            cleanup("men"); cleanup("women");
+          }, 50);
+
           localStorage.setItem(k, today);
           resolve(true);
         }catch(e){ resolve(false); }
@@ -697,7 +723,10 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
   const prev = await new Promise(res=> ref.get("current").once(res));
   const now = Date.now();
 
-  // 1) نقل الرقم السابق (الذي كان "حالي") إلى العمود المناسب بعد نداء رقم جديد
+  // 1) تحديث الرقم الحالي (سريع)
+  ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
+
+// 2) نقل الرقم السابق (السجل) (الذي كان "حالي") إلى العمود المناسب بعد نداء رقم جديد
   if(prev && prev.number && prev.number !== "--" && (prev.gender === "men" || prev.gender === "women")){
     const bucketPrev = (prev.gender === "women") ? "women" : "men";
     const key = String(now); // مفتاح واضح
@@ -718,9 +747,7 @@ const bs=$("#branchSelect"); if(bs) bs.value=b;
     }, 250);
   }
 
-  // 2) تحديث الرقم الحالي
-  ref.get("current").put({number:num, gender, staff: username, ts: now, result: "", resultAt: 0, resultBy: ""});
-  // تحديث "التالي" للموظف إذا كان ضمن نطاقه
+    // تحديث "التالي" للموظف إذا كان ضمن نطاقه
       const ov2 = parseOverrideRange();
       const rf2 = ov2 ? ov2.from : staffData?.rangeFrom;
       const rt2 = ov2 ? ov2.to : staffData?.rangeTo;
@@ -954,12 +981,22 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
     // قراءة السجل بطريقة map().on لضمان وصول العناصر الفرعية (بدون مشاكل مزامنة)
     function makeBucketRenderer(bucket, target){
       const store = {};
+      let resetTs = 0;
+
+      const wipe = ()=>{
+        for(const k in store) delete store[k];
+      };
+
       const render = ()=>{
-        const items = Object.keys(store).map(k=>store[k]).filter(Boolean).map(it=>{
-          const num = it.number ?? it.num ?? it.n ?? it;
-          const ts = it.ts ?? it.time ?? 0;
-          return { num: String(num), ts: ts };
-        }).filter(x=>x.num && x.num !== "--");
+        const items = Object.keys(store)
+          .map(k=>store[k])
+          .filter(Boolean)
+          .map(it=>{
+            const num = it.number ?? it.num ?? it.n ?? it;
+            const ts  = it.ts ?? it.time ?? 0;
+            return { num: String(num), ts: ts };
+          })
+          .filter(x=>x.num && x.num !== "--" && (typeof x.ts === "number") && x.ts > (resetTs||0));
 
         items.sort((a,b)=> (b.ts||0) - (a.ts||0));
         const limit = (typeof historyLimit === "number" && Number.isFinite(historyLimit)) ? historyLimit : 15;
@@ -967,12 +1004,19 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
 
         target.innerHTML = sliced.map(x=>{
           const t = x.ts ? formatTime(x.ts) : "";
-          const r = resultsCache[String(x.num)] || "";
-          const cls = (r==="pass"||r==="fail"||r==="absent") ? " " + r : "";
-          return `<div class="tile${cls}"><div class="tileNum">${esc(x.num)}</div><div class="tileTime">${esc(t)}</div></div>`;
-        }).join("") ||
-          `<div style="grid-column:1/-1;text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
+          const cls = resultsCache[x.num] || "";
+          return `<div class="numBox ${cls}">${esc(x.num)}<div class="time">${esc(t)}</div></div>`;
+        }).join("") || `<div style="text-align:center;color:rgba(11,34,48,.70);font-weight:900;padding:10px">—</div>`;
       };
+
+      // Listen to reset marker (fast clear, reliable on iOS/slow networks)
+      ref.get("historyReset").get(bucket).on((v)=>{
+        if(typeof v === "number"){
+          resetTs = v || 0;
+          wipe();
+          render();
+        }
+      });
 
       ref.get("history").get(bucket).map().on((val, key)=>{
         if(!key || key === "_") return;
@@ -984,7 +1028,6 @@ $("#branchLabel").textContent = `الفرع: ${b}`;
         render();
       });
 
-      // إعادة الرسم عند الطلب (مثلاً عند وصول نتائج جديدة)
       return render;
     }
 
